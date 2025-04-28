@@ -17,7 +17,7 @@ variable "vm_config" {
 
   default = {
     vm1 = {
-      hostname           = "web-03"
+      hostname           = "aaron-vm1-vaultagent"
       ad_domain          = "hashicorp.local"
       backup_policy      = "daily"
       environment        = "dev"
