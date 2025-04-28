@@ -17,6 +17,7 @@ module "single_virtual_machine" {
   backup_policy    = each.value.backup_policy
   environment      = each.value.environment
   os_type          = each.value.os_type
+  linux_distribution = each.value.linux_distribution
   security_profile = each.value.security_profile
   site             = each.value.site
   size             = each.value.size
@@ -28,22 +29,22 @@ module "single_virtual_machine" {
 resource "aap_inventory" "vm_inventory" {
   name        = "GCVE VM Inventory - ${var.TFC_WORKSPACE_ID}"
   description = "Inventory for deployed virtual machines in GCVE"
-  
+
   # Add any relevant inventory-wide variables here
-  variables   = jsonencode({ "os" : "Linux", "automation" : "ansible" })
+  variables = jsonencode({ "os" : "Linux", "automation" : "ansible" })
 }
 
 # Create AAP groups based on security profile
 resource "aap_group" "vm_groups" {
   for_each = { for key, vm in var.vm_config : vm.security_profile => vm if length(vm.security_profile) > 0 }
-  
+
   inventory_id = aap_inventory.vm_inventory.id
-  name         = replace(each.key, "-", "_")  # Replace hyphen with underscore for group name
-  
+  name         = replace(each.key, "-", "_") # Replace hyphen with underscore for group name
+
   # Define group-specific variables
-  variables    = jsonencode({ 
-    "environment" : each.value.environment, 
-    "site"        : each.value.site 
+  variables = jsonencode({
+    "environment" : each.value.environment,
+    "site" : each.value.site
   })
 }
 
@@ -52,15 +53,15 @@ resource "aap_host" "vm_hosts" {
   for_each = var.vm_config
 
   inventory_id = aap_inventory.vm_inventory.id
-  name         = each.value.hostname  # Use the hostname for each VM
-  variables    = jsonencode({
-    "backup_policy"    : each.value.backup_policy,
-    "os_type"          : each.value.os_type,
-    "storage_profile"  : each.value.storage_profile,
-    "tier"             : each.value.tier,
-    "ansible_host"     : module.single_virtual_machine[each.key].ip_address  # Reference the IP address from the module
+  name         = each.value.hostname # Use the hostname for each VM
+  variables = jsonencode({
+    "backup_policy" : each.value.backup_policy,
+    "os_type" : each.value.os_type,
+    "storage_profile" : each.value.storage_profile,
+    "tier" : each.value.tier,
+    "ansible_host" : module.single_virtual_machine[each.key].ip_address # Reference the IP address from the module
   })
-  
+
   # Associate each host with its respective group based on security profile
   groups = [aap_group.vm_groups[each.value.security_profile].id]
 }
