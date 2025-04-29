@@ -25,7 +25,7 @@ variable "vm_config" {
       linux_distribution = "rhel"
       security_profile   = "web-server"
       site               = "sydney"
-      size               = "xlarge"
+      size               = "large"
       storage_profile    = "standard"
       tier               = "gold"
     }
