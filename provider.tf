@@ -12,5 +12,4 @@ terraform {
 }
 
 provider "aap" {
-  insecure_skip_verify = true
 }
