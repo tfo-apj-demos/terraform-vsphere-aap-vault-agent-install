@@ -30,7 +30,7 @@ module "single_virtual_machine" {
 # Create an AAP inventory for this workspace
 resource "aap_inventory" "vm_inventory" {
   name        = "Better Together Demo - ${var.TFC_WORKSPACE_ID}"
-  description = "Inventory for VMs built with Terraform and managed by AAP"
+  description = "Inventory for VMs built with HCP Terraform and managed by AAP"
 
   variables = jsonencode({
     os                 = one(values(var.vm_config)).os_type
