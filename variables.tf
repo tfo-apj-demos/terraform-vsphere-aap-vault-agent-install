@@ -14,25 +14,6 @@ variable "vm_config" {
     storage_profile    = string
     tier               = string
   }))
-
-  default = {
-    vm1 = {
-      hostname           = "aaron-vm1-vaultagent"
-      ad_domain          = "hashicorp.local"
-      backup_policy      = "daily"
-      environment        = "dev"
-      os_type            = "linux"
-      linux_distribution = "rhel"
-      security_profile   = "web-server"
-      site               = "sydney"
-      size               = "large"
-      storage_profile    = "standard"
-      tier               = "gold"
-    }
-    # Uncomment and add other VMs as necessary
-    # vm2 = { ... }
-    # vm3 = { ... }
-  }
 }
 
 # Job template ID for the AAP job
