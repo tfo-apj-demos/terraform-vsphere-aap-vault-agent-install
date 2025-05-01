@@ -4,7 +4,7 @@ terraform {
       source  = "hashicorp/vsphere"
       version = "~> 2"
     }
-    # Ansible Autoimation Platform Provider
+    # Ansible Automation Platform Provider
     aap = {
       source  = "ansible/aap"
       version = "~> 1"
