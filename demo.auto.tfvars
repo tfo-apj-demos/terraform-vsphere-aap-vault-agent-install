@@ -1,7 +1,7 @@
 # This file contains the configuration for the virtual machines.
 # It defines the properties for each VM, including hostname, domain, backup policy, environment, OS type, distribution, security profile, site, size, storage profile, and tier.
 vm_config = {
-  web-server = {
+  db-server = {
     hostname           = "database-server-01"
     os_type            = "linux"
     linux_distribution = "rhel"
