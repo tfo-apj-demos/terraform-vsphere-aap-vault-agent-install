@@ -8,7 +8,7 @@ locals {
   }
 }
 
-# Build VMs using a private module
+# Build VMs using a private module from the Private Module Registry
 module "single_virtual_machine" {
   for_each = var.vm_config
   source   = "app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere"
