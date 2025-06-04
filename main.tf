@@ -73,9 +73,17 @@ resource "aap_host" "vm_hosts" {
   groups = [aap_group.vm_groups[each.value.security_profile].id]
 }
 
+
+# rhel-install-vault-agent
+data "aap_job_template" "vault_agent" {
+  name = "rhel-install-vault-agent" #var.job_template_name - hard coded due to provider bug see: https://github.com/ansible/terraform-provider-aap/issues/75
+  organization_name = "Default"
+}
+
+
 # Run AAP job on deployed VMs
 resource "aap_job" "vm_demo_job" {
-  job_template_id = var.job_template_id
+  job_template_id = data.aap_job_template.vault_agent.id
   inventory_id    = aap_inventory.vm_inventory.id
   extra_vars      = jsonencode({})
 
