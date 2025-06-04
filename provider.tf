@@ -7,7 +7,7 @@ terraform {
     # Ansible Automation Platform Provider
     aap = {
       source  = "ansible/aap"
-      version = "~> 1"
+      version = "~> 1.2"
     }
   }
 }
