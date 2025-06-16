@@ -24,3 +24,13 @@ variable "job_template_id" {
 
 # TFC Workspace ID for inventory naming
 variable "TFC_WORKSPACE_ID" {}
+
+variable "ad_domain_name" {
+  description = "The name of the Active Directory domain."
+  type        = string
+}
+variable "admin_password" {
+  description = "The password for the administrator account."
+  type        = string
+  sensitive   = true
+}
