@@ -37,7 +37,7 @@ variable "admin_password" {
   default = null
 }
 
-variable "domain_admin_username" {
+variable "domain_admin_user" {
   description = "The username of the domain administrator."
   type        = string
   default = null
@@ -48,4 +48,10 @@ variable "domain_admin_password" {
   type        = string
   sensitive   = true
   default = null
+}
+
+variable "ad_domain" {
+  description = "The Active Directory domain to join."
+  type        = string
+  default     = null
 }
