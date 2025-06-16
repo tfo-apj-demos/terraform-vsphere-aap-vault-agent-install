@@ -76,10 +76,9 @@ resource "aap_host" "vm_hosts" {
 
 # rhel-install-vault-agent
 data "aap_job_template" "vault_agent" {
-  name = "rhel-install-vault-agent" #var.job_template_name - hard coded due to provider bug see: https://github.com/ansible/terraform-provider-aap/issues/75
+  name = "rhel-install-vault-agent"
   organization_name = "Default"
 }
-
 
 # Run AAP job on deployed VMs
 resource "aap_job" "vm_demo_job" {
