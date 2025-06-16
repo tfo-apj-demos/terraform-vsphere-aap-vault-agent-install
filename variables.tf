@@ -36,3 +36,16 @@ variable "admin_password" {
   sensitive   = true
   default = null
 }
+
+variable "domain_admin_username" {
+  description = "The username of the domain administrator."
+  type        = string
+  default = null
+}
+
+variable "domain_admin_password" {
+  description = "The password for the domain administrator."
+  type        = string
+  sensitive   = true
+  default = null
+}
