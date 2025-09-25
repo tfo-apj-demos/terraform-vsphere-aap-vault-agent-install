@@ -81,9 +81,9 @@ data "aap_job_template" "vault_agent" {
 }
 
 # Run AAP job on deployed VMs
-resource "aap_job" "vm_demo_job" {
+resource "aap_workflow_job" "vm_demo_job" {
   #job_template_id = data.aap_job_template.vault_agent.id
-  job_template_id = var.job_template_id
+  workflow_job_template_id = var.job_template_id
   inventory_id    = aap_inventory.vm_inventory.id
   extra_vars      = jsonencode({})
 
