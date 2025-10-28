@@ -28,14 +28,14 @@ module "single_virtual_machine" {
 }
 
 # Create an AAP inventory for this workspace
+# Create an AAP inventory for this workspace
 resource "aap_inventory" "vm_inventory" {
   name        = "Better Together Demo - ${var.TFC_WORKSPACE_ID}"
   description = "Inventory for VMs built with HCP Terraform and managed by AAP"
 
   variables = jsonencode({
-    os                 = one(values(var.vm_config)).os_type
-    linux_distribution = one(values(var.vm_config)).linux_distribution
-    security_profile   = one(values(var.vm_config)).security_profile
+    os                 = values(var.vm_config)[0].os_type
+    linux_distribution = values(var.vm_config)[0].linux_distribution
   })
 }
 
