@@ -14,19 +14,19 @@ vm_config = {
     storage_profile    = "standard"
     tier               = "gold"
   },
-  web-server = {
-      hostname           = "web-server-01"
-      os_type            = "linux"
-      linux_distribution = "rhel"
-      site               = "sydney"
-      size               = "large"
-      security_profile   = "web-server"
-      environment        = "dev"
-      ad_domain          = "hashicorp.local"
-      backup_policy      = "daily"
-      storage_profile    = "standard"
-      tier               = "gold"
-  }
+  # web-server = {
+  #     hostname           = "web-server-01"
+  #     os_type            = "linux"
+  #     linux_distribution = "rhel"
+  #     site               = "sydney"
+  #     size               = "large"
+  #     security_profile   = "web-server"
+  #     environment        = "dev"
+  #     ad_domain          = "hashicorp.local"
+  #     backup_policy      = "daily"
+  #     storage_profile    = "standard"
+  #     tier               = "gold"
+  # }
 }
 
 # This ID is used to identify the specific job template that will be executed in Ansible Automation Platform (AAP).
