@@ -76,7 +76,7 @@ resource "aap_host" "vm_hosts" {
 
 # rhel-install-vault-agent
 data "aap_job_template" "vault_agent" {
-  name = "rhel-install-vault-agent"
+  name = "rhel-install-vault-agent-complete"
   organization_name = "Default"
 }
 
