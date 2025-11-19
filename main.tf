@@ -74,9 +74,9 @@ resource "aap_host" "vm_hosts" {
 }
 
 
-# rhel-install-vault-agent
 data "aap_job_template" "vault_agent" {
-  name = "rhel-install-vault-agent-complete"
+  #name = "rhel-install-vault-agent-complete"
+  name = "issue-pki-certificate"
   organization_name = "Default"
 }
 
