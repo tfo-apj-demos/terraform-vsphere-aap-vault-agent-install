@@ -41,17 +41,18 @@ resource "aap_inventory" "vm_inventory" {
 
 # Create AAP groups per security profile
 resource "aap_group" "vm_groups" {
-  for_each = {
-    for key, vm in var.vm_config : vm.security_profile => vm
+  for_each = toset([
+    for vm in var.vm_config : vm.security_profile
     if length(vm.security_profile) > 0
-  }
+  ])
 
   inventory_id = aap_inventory.vm_inventory.id
-  name         = replace(each.key, "-", "_")
+  name         = replace(each.value, "-", "_")
 
   variables = jsonencode({
-    site = each.value.site
-    env  = each.value.environment
+    # Get the first VM with this security profile for site/env values
+    site = [for vm in var.vm_config : vm.site if vm.security_profile == each.value][0]
+    env  = [for vm in var.vm_config : vm.environment if vm.security_profile == each.value][0]
   })
 }
 
