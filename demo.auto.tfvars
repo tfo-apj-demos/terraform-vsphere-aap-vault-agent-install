@@ -26,7 +26,7 @@ vm_config = {
     backup_policy      = "daily"
     storage_profile    = "standard"
     tier               = "gold"
-  # },
+  },
   # app-server-01 = {
   #   hostname           = "app-server-01"
   #   os_type            = "linux"
