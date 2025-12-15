@@ -13,7 +13,7 @@ module "single_virtual_machine" {
   for_each = var.vm_config
   source   = "app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere"
   version  = "1.6.2"
-  fallback_template_name  = "base-rhel-9-20251118225225_vtpm"  # Manual override
+  fallback_template_name  = "base-rhel-9-20250501083042_vtpm"  # Manual override
 
   hostname           = each.value.hostname
   ad_domain          = each.value.ad_domain
