@@ -82,11 +82,11 @@ data "aap_job_template" "vault_agent" {
   organization_name = "Default"
 }
 
-# Run AAP job on deployed VMs
-resource "aap_job" "vm_demo_job" {
-  job_template_id = data.aap_job_template.vault_agent.id
-  inventory_id    = aap_inventory.vm_inventory.id
-  extra_vars      = jsonencode({})
+# # Run AAP job on deployed VMs
+# resource "aap_job" "vm_demo_job" {
+#   job_template_id = data.aap_job_template.vault_agent.id
+#   inventory_id    = aap_inventory.vm_inventory.id
+#   extra_vars      = jsonencode({})
 
-  triggers = local.vm_names
-}
+#   triggers = local.vm_names
+# }
