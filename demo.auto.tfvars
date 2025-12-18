@@ -14,19 +14,19 @@ vm_config = {
     storage_profile    = "standard"
     tier               = "gold"
   },
-  database-server-02 = {
-    hostname           = "database-server-02"
-    os_type            = "linux"
-    linux_distribution = "rhel"
-    site               = "melbourne"
-    size               = "large"
-    security_profile   = "db-server"
-    environment        = "dev"
-    ad_domain          = "hashicorp.local"
-    backup_policy      = "daily"
-    storage_profile    = "standard"
-    tier               = "gold"
-  },
+  # database-server-02 = {
+  #   hostname           = "database-server-02"
+  #   os_type            = "linux"
+  #   linux_distribution = "rhel"
+  #   site               = "melbourne"
+  #   size               = "large"
+  #   security_profile   = "db-server"
+  #   environment        = "dev"
+  #   ad_domain          = "hashicorp.local"
+  #   backup_policy      = "daily"
+  #   storage_profile    = "standard"
+  #   tier               = "gold"
+  # },
   # app-server-01 = {
   #   hostname           = "app-server-01"
   #   os_type            = "linux"
