@@ -77,7 +77,8 @@ resource "aap_host" "vm_hosts" {
 
 
 data "aap_job_template" "vault_agent" {
-  name = "demo-vault-tpm-helper"
+  name = "1-install-vault-agent"
+  #name = "demo-vault-tpm-helper"
   #name = "issue-pki-certificate"
   organization_name = "Default"
 }
