@@ -7,7 +7,7 @@ terraform {
     # Ansible Automation Platform Provider
     aap = {
       source  = "ansible/aap"
-      version = "~> 1.2"
+      version = "~> 1.4"
     }
     # Required by single-virtual-machine module
     hcp = {
