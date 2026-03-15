@@ -93,7 +93,8 @@ action "aap_job_launch" "vault_agent" {
 
 # Trigger the AAP job after VMs are created or updated
 resource "terraform_data" "vm_provisioned" {
-  input = local.vm_names
+  depends_on = [aap_host.vm_hosts]
+  input      = local.vm_names
 
   lifecycle {
     action_trigger {
