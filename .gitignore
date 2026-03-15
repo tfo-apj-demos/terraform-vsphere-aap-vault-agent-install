@@ -35,3 +35,9 @@ override.tf.json
 .terraformrc
 terraform.rc
 .terraform.lock.hcl
+
+# TLS artifacts
+tls-auth-example/
+*.key
+*.csr
+*.pem
