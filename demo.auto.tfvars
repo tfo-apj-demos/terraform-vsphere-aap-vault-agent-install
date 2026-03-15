@@ -106,7 +106,3 @@ vm_config = {
   #     tier               = "gold"
   # }
 }
-
-# This ID is used to identify the specific job template that will be executed in Ansible Automation Platform (AAP).
-# Job for installing the vault agent
-job_template_id = "19"
