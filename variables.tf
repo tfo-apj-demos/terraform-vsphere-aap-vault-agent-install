@@ -16,38 +16,42 @@ variable "vm_config" {
   }))
 }
 
-# Job template ID for the AAP job
-variable "job_template_id" {
-  description = "The ID of the job template to run."
+# HCP Terraform workspace metadata — auto-injected by HCP Terraform at runtime
+variable "TFC_PROJECT_NAME" {
+  description = "The name of the HCP Terraform project. Auto-injected by HCP Terraform."
   type        = string
+  default     = "Default Project"
 }
 
-# TFC Workspace ID for inventory naming
-variable "TFC_WORKSPACE_ID" {}
+variable "TFC_WORKSPACE_NAME" {
+  description = "The name of the HCP Terraform workspace. Auto-injected by HCP Terraform."
+  type        = string
+  default     = "terraform-vsphere-vm-aap-vault-agent"
+}
 
 variable "ad_domain_name" {
   description = "The name of the Active Directory domain."
   type        = string
-  default = null
+  default     = null
 }
 variable "admin_password" {
   description = "The password for the administrator account."
   type        = string
   sensitive   = true
-  default = null
+  default     = null
 }
 
 variable "domain_admin_user" {
   description = "The username of the domain administrator."
   type        = string
-  default = null
+  default     = null
 }
 
 variable "domain_admin_password" {
   description = "The password for the domain administrator."
   type        = string
   sensitive   = true
-  default = null
+  default     = null
 }
 
 variable "ad_domain" {

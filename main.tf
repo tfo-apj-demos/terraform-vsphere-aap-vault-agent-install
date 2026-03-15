@@ -10,10 +10,10 @@ locals {
 
 # Build VMs using a private module from the Private Module Registry
 module "single_virtual_machine" {
-  for_each = var.vm_config
-  source   = "app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere"
-  version  = "1.6.2"
-  fallback_template_name  = "base-rhel-9-20250501083042_vtpm"  # Manual override
+  for_each               = var.vm_config
+  source                 = "app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere"
+  version                = "1.6.2"
+  fallback_template_name = "base-rhel-9-20250501083042_vtpm" # Manual override
 
   hostname           = each.value.hostname
   ad_domain          = each.value.ad_domain
@@ -29,9 +29,8 @@ module "single_virtual_machine" {
 }
 
 # Create an AAP inventory for this workspace
-# Create an AAP inventory for this workspace
 resource "aap_inventory" "vm_inventory" {
-  name        = "Better Together Demo - ${var.TFC_WORKSPACE_ID}"
+  name        = "Better Together Demo - ${var.TFC_PROJECT_NAME} - ${var.TFC_WORKSPACE_NAME}"
   description = "Inventory for VMs built with HCP Terraform and managed by AAP"
 
   variables = jsonencode({
@@ -76,18 +75,30 @@ resource "aap_host" "vm_hosts" {
 }
 
 
+# Look up the AAP job template by name to avoid hardcoding IDs
 data "aap_job_template" "vault_agent" {
-  name = "1-install-vault-agent"
-  #name = "demo-vault-tpm-helper"
-  #name = "issue-pki-certificate"
+  name              = "1-install-vault-agent"
   organization_name = "Default"
 }
 
-# Run AAP job on deployed VMs
-resource "aap_job" "vm_demo_job" {
-  job_template_id = data.aap_job_template.vault_agent.id
-  inventory_id    = aap_inventory.vm_inventory.id
-  extra_vars      = jsonencode({})
+# Launch the AAP job as an action (fire-and-forget, not tracked in state)
+action "aap_job_launch" "vault_agent" {
+  config {
+    job_template_id                     = data.aap_job_template.vault_agent.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 1000
+  }
+}
 
-  triggers = local.vm_names
+# Trigger the AAP job after VMs are created or updated
+resource "terraform_data" "vm_provisioned" {
+  input = local.vm_names
+
+  lifecycle {
+    action_trigger {
+      events  = [after_create, after_update]
+      actions = [action.aap_job_launch.vault_agent]
+    }
+  }
 }

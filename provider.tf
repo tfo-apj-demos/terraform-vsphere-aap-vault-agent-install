@@ -1,18 +1,20 @@
 terraform {
+  required_version = ">= 1.14"
+
   required_providers {
     vsphere = {
       source  = "vmware/vsphere"
-      version = "~> 2"
+      version = "~> 2.15"
     }
     # Ansible Automation Platform Provider
     aap = {
       source  = "ansible/aap"
-      version = "~> 1.4"
+      version = "~> 1.4.0"
     }
     # Required by single-virtual-machine module
     hcp = {
       source  = "hashicorp/hcp"
-      version = "~> 0.104"
+      version = "~> 0.111"
     }
     ad = {
       source  = "hashicorp/ad"
