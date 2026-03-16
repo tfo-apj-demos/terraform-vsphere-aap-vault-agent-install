@@ -77,7 +77,7 @@ resource "aap_host" "vm_hosts" {
 
 # Look up the AAP job template by name to avoid hardcoding IDs
 data "aap_job_template" "vault_agent" {
-  name              = "1-install-vault-agent"
+  name              = "rhel-install-vault-agent"
   organization_name = "Default"
 }
 
@@ -93,7 +93,7 @@ action "aap_job_launch" "vault_agent" {
 
 # Trigger the AAP job after VMs are created or updated
 resource "terraform_data" "vm_provisioned" {
-  depends_on = [aap_host.vm_hosts]
+
   input      = local.vm_names
 
   lifecycle {
