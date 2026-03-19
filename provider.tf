@@ -1,6 +1,14 @@
 terraform {
   required_version = ">= 1.14"
 
+  # cloud {                                                                                                      
+  #   organization = "tfo-apj-demos"                        
+  #   workspaces {                                                                                               
+  #     name = "terraform-vsphere-aap-vault-agent-install"
+  #     project = "Demo Better Together Project"                                               
+  #   }                                                                                                          
+  # } 
+
   required_providers {
     vsphere = {
       source  = "vmware/vsphere"
