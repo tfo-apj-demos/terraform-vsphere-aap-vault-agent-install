@@ -1,0 +1,11 @@
+FROM srlynch1/terraform-ai-tools:latest
+
+RUN npm install -g @github/copilot && \
+    npm cache clean --force
+
+# Install pre-commit (base image has uv but not pre-commit)
+RUN uv tool install pre-commit --with pre-commit-uv
+
+# Add yolo aliases for unattended mode
+RUN echo 'alias copiloty="copilot --yolo --disable-builtin-mcps"' >> /home/node/.zshrc && \
+    chown node:node /home/node/.zshrc

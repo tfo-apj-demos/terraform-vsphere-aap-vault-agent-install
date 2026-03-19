@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Statusline — Themes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-page: #060710;
+    --bg-card: #0b0d14;
+    --bg-elevated: #10121a;
+    --terminal: #0a0c12;
+    --border: rgba(255,255,255,0.045);
+    --border-h: rgba(255,255,255,0.08);
+    --t1: #e8eaf2;
+    --t2: #b5bcc8;
+    --t3: #6a7385;
+    --t4: #333a4a;
+    --accent: rgb(45,250,150);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    background: var(--bg-page);
+    color: var(--t2);
+    font-family: 'Outfit', sans-serif;
+    line-height: 1.65;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::after {
+    content:''; position:fixed; inset:0; pointer-events:none; opacity:0.02; z-index:9999;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Hero */
+  .hero {
+    position:relative; display:flex; flex-direction:column;
+    align-items:center; padding:90px 24px 60px; text-align:center;
+  }
+  .hero::before {
+    content:''; position:absolute; top:-20%; left:50%; transform:translateX(-50%);
+    width:600px; height:600px; pointer-events:none;
+    background: radial-gradient(ellipse, rgba(45,250,150,0.03) 0%, transparent 65%);
+  }
+  .hero-pre {
+    font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--accent);
+    letter-spacing:0.3em; text-transform:uppercase; margin-bottom:20px;
+    opacity:0; animation:fadeUp .7s .1s forwards;
+  }
+  .hero h1 {
+    font-family:'Instrument Serif',serif; font-size:clamp(2.2rem,5vw,4rem);
+    font-weight:400; color:var(--t1); line-height:1.12; letter-spacing:-0.02em;
+    margin-bottom:18px; opacity:0; animation:fadeUp .7s .2s forwards;
+  }
+  .hero h1 em {
+    font-style:italic;
+    background:linear-gradient(135deg, var(--accent), rgb(255,215,45));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  }
+  .hero-sub {
+    font-size:0.95rem; color:var(--t3); max-width:500px; font-weight:300;
+    opacity:0; animation:fadeUp .7s .35s forwards;
+  }
+
+  /* Section */
+  .section { max-width:1100px; margin:0 auto; padding:0 24px 50px; }
+  .section-label {
+    font-family:'DM Mono',monospace; font-size:0.64rem; color:var(--t4);
+    letter-spacing:0.2em; text-transform:uppercase; margin-bottom:24px;
+  }
+  .section-label span { color:var(--accent); }
+
+  .grid { display:flex; flex-direction:column; gap:18px; }
+
+  /* Card */
+  .card {
+    background:var(--bg-card); border:1px solid var(--border);
+    border-radius:12px; overflow:hidden; transition:border-color .3s;
+  }
+  .card:hover { border-color:var(--border-h); }
+  .card-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 16px; border-bottom:1px solid var(--border); background:var(--bg-elevated);
+  }
+  .card-dots { display:flex; gap:6px; }
+  .dot { width:10px; height:10px; border-radius:50%; opacity:.5; }
+  .dot.r { background:#ff5f56; } .dot.y { background:#ffbd2e; } .dot.g { background:#27c93f; }
+  .card-title { font-family:'DM Mono',monospace; font-size:.63rem; color:var(--t4); }
+  .badge {
+    font-family:'DM Mono',monospace; font-size:.55rem; padding:3px 10px;
+    border-radius:100px; font-weight:500; letter-spacing:.04em; text-transform:uppercase;
+  }
+  .card-body { padding:12px 14px 8px; background:var(--terminal); }
+  .note { font-family:'DM Mono',monospace; font-size:.56rem; color:var(--t4); padding:3px 14px 1px; }
+
+  /* Statusline */
+  .sl {
+    display:flex; align-items:center; font-family:'DM Mono',monospace;
+    font-size:12px; line-height:1; white-space:nowrap; overflow-x:auto; scrollbar-width:none;
+  }
+  .sl::-webkit-scrollbar { display:none; }
+  .seg { display:inline-flex; align-items:center; gap:4px; padding:5px 10px; font-weight:500; }
+  .sep { font-size:18px; line-height:1; display:inline-flex; align-items:center; margin:0 -.5px; }
+  .dim { opacity:.45; }
+  .signal { font-weight:700; }
+
+  /* Context bar */
+  .ctx-bar {
+    display:flex; align-items:center; gap:8px;
+    font-family:'DM Mono',monospace; font-size:11px; padding:5px 3px 2px;
+  }
+  .ctx-label { font-size:10px; min-width:20px; }
+  .bar-track { height:3px; border-radius:1.5px; width:200px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:1.5px; }
+  .ctx-pct { font-weight:700; font-size:11px; }
+
+  /* ═══════════════════ THEME COLORS ═══════════════════ */
+
+  /* INSTRUMENT */
+  .t-inst .seg-dir { background:rgb(24,28,42); color:rgb(165,178,210); }
+  .t-inst .seg-git { background:rgb(30,27,46); color:rgb(175,165,210); }
+  .t-inst .seg-mdl { background:rgb(22,34,40); color:rgb(140,200,200); }
+  .t-inst .seg-cg  { background:rgb(10,50,34); color:rgb(45,250,150); }
+  .t-inst .seg-cy  { background:rgb(56,44,8);  color:rgb(255,215,45); }
+  .t-inst .seg-cr  { background:rgb(62,14,14); color:rgb(255,80,65); }
+  .t-inst .seg-cost{ background:rgb(34,30,20); color:rgb(235,200,105); }
+  .t-inst .seg-ln  { background:rgb(24,32,28); color:rgb(140,195,150); }
+  .t-inst .seg-dur { background:rgb(26,28,38); color:rgb(140,150,185); }
+  .t-inst .a-dir { color:rgb(24,28,42); } .t-inst .a-git { color:rgb(30,27,46); }
+  .t-inst .a-mdl { color:rgb(22,34,40); } .t-inst .a-cg  { color:rgb(10,50,34); }
+  .t-inst .a-cy  { color:rgb(56,44,8); }  .t-inst .a-cr  { color:rgb(62,14,14); }
+  .t-inst .a-cost{ color:rgb(34,30,20); } .t-inst .a-ln  { color:rgb(24,32,28); }
+  .t-inst .a-dur { color:rgb(26,28,38); }
+  .t-inst .wt { color:rgb(65,215,250); }
+  .t-inst .bar-track { background:rgba(28,30,40,.6); }
+  .t-inst .bar-fill.g { background:rgb(40,245,145); box-shadow:0 0 8px rgba(45,250,150,.25); }
+  .t-inst .bar-fill.y { background:rgb(250,210,40); box-shadow:0 0 8px rgba(255,215,45,.2); }
+  .t-inst .bar-fill.r { background:rgb(250,75,60);  box-shadow:0 0 8px rgba(255,80,65,.25); }
+  .t-inst .ctx-label { color:rgb(55,60,80); }
+  .t-inst .pct-g { color:rgb(40,245,145); } .t-inst .pct-y { color:rgb(250,210,40); } .t-inst .pct-r { color:rgb(250,75,60); }
+  .t-inst .badge { background:rgba(165,178,210,.08); color:rgb(165,178,210); }
+
+  /* TOKYO */
+  .t-tokyo .seg-dir { background:rgb(22,22,42); color:rgb(150,155,200); }
+  .t-tokyo .seg-git { background:rgb(32,22,52); color:rgb(190,160,240); }
+  .t-tokyo .seg-mdl { background:rgb(18,30,48); color:rgb(100,195,240); }
+  .t-tokyo .seg-cg  { background:rgb(12,44,40); color:rgb(55,240,180); }
+  .t-tokyo .seg-cy  { background:rgb(50,40,12); color:rgb(255,220,60); }
+  .t-tokyo .seg-cr  { background:rgb(55,12,32); color:rgb(255,70,120); }
+  .t-tokyo .seg-cost{ background:rgb(36,28,22); color:rgb(240,195,110); }
+  .t-tokyo .seg-ln  { background:rgb(22,32,30); color:rgb(130,210,170); }
+  .t-tokyo .seg-dur { background:rgb(24,24,38); color:rgb(130,135,175); }
+  .t-tokyo .a-dir { color:rgb(22,22,42); } .t-tokyo .a-git { color:rgb(32,22,52); }
+  .t-tokyo .a-mdl { color:rgb(18,30,48); } .t-tokyo .a-cg  { color:rgb(12,44,40); }
+  .t-tokyo .a-cy  { color:rgb(50,40,12); } .t-tokyo .a-cr  { color:rgb(55,12,32); }
+  .t-tokyo .a-cost{ color:rgb(36,28,22); } .t-tokyo .a-ln  { color:rgb(22,32,30); }
+  .t-tokyo .a-dur { color:rgb(24,24,38); }
+  .t-tokyo .wt { color:rgb(80,220,255); }
+  .t-tokyo .bar-track { background:rgba(26,26,38,.6); }
+  .t-tokyo .bar-fill.g { background:rgb(50,235,175); box-shadow:0 0 8px rgba(55,240,180,.25); }
+  .t-tokyo .bar-fill.y { background:rgb(250,215,55); box-shadow:0 0 8px rgba(255,220,60,.2); }
+  .t-tokyo .bar-fill.r { background:rgb(250,65,115); box-shadow:0 0 8px rgba(255,70,120,.25); }
+  .t-tokyo .ctx-label { color:rgb(48,48,72); }
+  .t-tokyo .pct-g { color:rgb(50,235,175); } .t-tokyo .pct-y { color:rgb(250,215,55); } .t-tokyo .pct-r { color:rgb(250,65,115); }
+  .t-tokyo .badge { background:rgba(190,160,240,.08); color:rgb(190,160,240); }
+
+  /* EMBER */
+  .t-ember .seg-dir { background:rgb(32,26,22); color:rgb(195,170,145); }
+  .t-ember .seg-git { background:rgb(36,28,24); color:rgb(210,175,140); }
+  .t-ember .seg-mdl { background:rgb(30,28,22); color:rgb(200,180,140); }
+  .t-ember .seg-cg  { background:rgb(18,44,24); color:rgb(80,235,110); }
+  .t-ember .seg-cy  { background:rgb(60,42,8);  color:rgb(255,200,40); }
+  .t-ember .seg-cr  { background:rgb(60,16,10); color:rgb(250,85,50); }
+  .t-ember .seg-cost{ background:rgb(40,30,16); color:rgb(245,200,90); }
+  .t-ember .seg-ln  { background:rgb(28,30,22); color:rgb(170,195,130); }
+  .t-ember .seg-dur { background:rgb(30,28,26); color:rgb(170,158,145); }
+  .t-ember .a-dir { color:rgb(32,26,22); } .t-ember .a-git { color:rgb(36,28,24); }
+  .t-ember .a-mdl { color:rgb(30,28,22); } .t-ember .a-cg  { color:rgb(18,44,24); }
+  .t-ember .a-cy  { color:rgb(60,42,8); }  .t-ember .a-cr  { color:rgb(60,16,10); }
+  .t-ember .a-cost{ color:rgb(40,30,16); } .t-ember .a-ln  { color:rgb(28,30,22); }
+  .t-ember .a-dur { color:rgb(30,28,26); }
+  .t-ember .wt { color:rgb(100,210,230); }
+  .t-ember .bar-track { background:rgba(32,28,24,.6); }
+  .t-ember .bar-fill.g { background:rgb(75,230,105); box-shadow:0 0 8px rgba(80,235,110,.2); }
+  .t-ember .bar-fill.y { background:rgb(250,195,35); box-shadow:0 0 8px rgba(255,200,40,.2); }
+  .t-ember .bar-fill.r { background:rgb(245,80,45);  box-shadow:0 0 8px rgba(250,85,50,.25); }
+  .t-ember .ctx-label { color:rgb(60,52,42); }
+  .t-ember .pct-g { color:rgb(75,230,105); } .t-ember .pct-y { color:rgb(250,195,35); } .t-ember .pct-r { color:rgb(245,80,45); }
+  .t-ember .badge { background:rgba(210,175,140,.08); color:rgb(210,175,140); }
+
+  /* FROST */
+  .t-frost .seg-dir { background:rgb(16,22,36); color:rgb(175,195,225); }
+  .t-frost .seg-git { background:rgb(18,24,40); color:rgb(160,185,230); }
+  .t-frost .seg-mdl { background:rgb(14,26,38); color:rgb(140,200,235); }
+  .t-frost .seg-cg  { background:rgb(8,46,36);  color:rgb(40,255,170); }
+  .t-frost .seg-cy  { background:rgb(52,42,6);  color:rgb(255,225,50); }
+  .t-frost .seg-cr  { background:rgb(58,12,12); color:rgb(255,75,60); }
+  .t-frost .seg-cost{ background:rgb(28,28,22); color:rgb(225,205,130); }
+  .t-frost .seg-ln  { background:rgb(16,28,28); color:rgb(140,210,195); }
+  .t-frost .seg-dur { background:rgb(18,22,34); color:rgb(150,165,200); }
+  .t-frost .a-dir { color:rgb(16,22,36); } .t-frost .a-git { color:rgb(18,24,40); }
+  .t-frost .a-mdl { color:rgb(14,26,38); } .t-frost .a-cg  { color:rgb(8,46,36); }
+  .t-frost .a-cy  { color:rgb(52,42,6); }  .t-frost .a-cr  { color:rgb(58,12,12); }
+  .t-frost .a-cost{ color:rgb(28,28,22); } .t-frost .a-ln  { color:rgb(16,28,28); }
+  .t-frost .a-dur { color:rgb(18,22,34); }
+  .t-frost .wt { color:rgb(80,225,255); }
+  .t-frost .bar-track { background:rgba(20,24,34,.6); }
+  .t-frost .bar-fill.g { background:rgb(35,250,165); box-shadow:0 0 8px rgba(40,255,170,.25); }
+  .t-frost .bar-fill.y { background:rgb(250,220,45); box-shadow:0 0 8px rgba(255,225,50,.2); }
+  .t-frost .bar-fill.r { background:rgb(250,70,55);  box-shadow:0 0 8px rgba(255,75,60,.25); }
+  .t-frost .ctx-label { color:rgb(40,50,70); }
+  .t-frost .pct-g { color:rgb(35,250,165); } .t-frost .pct-y { color:rgb(250,220,45); } .t-frost .pct-r { color:rgb(250,70,55); }
+  .t-frost .badge { background:rgba(160,185,230,.08); color:rgb(160,185,230); }
+
+  /* MONO */
+  .t-mono .seg-dir { background:rgb(26,26,28); color:rgb(170,170,175); }
+  .t-mono .seg-git { background:rgb(30,30,32); color:rgb(165,165,170); }
+  .t-mono .seg-mdl { background:rgb(24,24,26); color:rgb(155,155,162); }
+  .t-mono .seg-cg  { background:rgb(10,48,32); color:rgb(50,245,145); }
+  .t-mono .seg-cy  { background:rgb(54,42,8);  color:rgb(255,212,42); }
+  .t-mono .seg-cr  { background:rgb(60,12,12); color:rgb(255,72,58); }
+  .t-mono .seg-cost{ background:rgb(32,30,28); color:rgb(210,195,155); }
+  .t-mono .seg-ln  { background:rgb(28,28,28); color:rgb(160,165,158); }
+  .t-mono .seg-dur { background:rgb(24,24,26); color:rgb(130,130,138); }
+  .t-mono .a-dir { color:rgb(26,26,28); } .t-mono .a-git { color:rgb(30,30,32); }
+  .t-mono .a-mdl { color:rgb(24,24,26); } .t-mono .a-cg  { color:rgb(10,48,32); }
+  .t-mono .a-cy  { color:rgb(54,42,8); }  .t-mono .a-cr  { color:rgb(60,12,12); }
+  .t-mono .a-cost{ color:rgb(32,30,28); } .t-mono .a-ln  { color:rgb(28,28,28); }
+  .t-mono .a-dur { color:rgb(24,24,26); }
+  .t-mono .wt { color:rgb(80,200,240); }
+  .t-mono .bar-track { background:rgba(26,26,28,.6); }
+  .t-mono .bar-fill.g { background:rgb(45,240,140); box-shadow:0 0 8px rgba(50,245,145,.25); }
+  .t-mono .bar-fill.y { background:rgb(250,208,38); box-shadow:0 0 8px rgba(255,212,42,.2); }
+  .t-mono .bar-fill.r { background:rgb(250,68,54);  box-shadow:0 0 8px rgba(255,72,58,.25); }
+  .t-mono .ctx-label { color:rgb(50,50,55); }
+  .t-mono .pct-g { color:rgb(45,240,140); } .t-mono .pct-y { color:rgb(250,208,38); } .t-mono .pct-r { color:rgb(250,68,54); }
+  .t-mono .badge { background:rgba(170,170,175,.06); color:rgb(170,170,175); }
+
+  /* Install */
+  .install { max-width:1100px; margin:0 auto 90px; padding:0 24px; }
+  .install-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .install-header { padding:16px 20px; border-bottom:1px solid var(--border); }
+  .install-header h3 { font-family:'Instrument Serif',serif; font-size:1.3rem; font-weight:400; color:var(--t1); }
+  .install-step { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; gap:14px; align-items:flex-start; }
+  .install-step:last-child { border-bottom:none; }
+  .step-num { font-family:'DM Mono',monospace; font-size:.6rem; color:var(--accent); background:rgba(45,250,150,.08); padding:2px 8px; border-radius:6px; margin-top:2px; }
+  .step-content { flex:1; }
+  .step-content p { font-size:.84rem; color:var(--t3); margin-bottom:8px; }
+  pre { background:var(--terminal); border:1px solid var(--border); border-radius:6px; padding:12px 14px; font-family:'DM Mono',monospace; font-size:.73rem; color:rgb(140,200,200); overflow-x:auto; line-height:1.7; }
+  code { color:rgb(235,200,105); }
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+  .grid .card { opacity:0; animation:fadeUp .5s forwards; }
+  .grid .card:nth-child(1) { animation-delay:.05s; }
+  .grid .card:nth-child(2) { animation-delay:.1s; }
+  .grid .card:nth-child(3) { animation-delay:.15s; }
+  .grid .card:nth-child(4) { animation-delay:.2s; }
+  .grid .card:nth-child(5) { animation-delay:.25s; }
+
+  @media (max-width:680px) {
+    .hero { padding:60px 20px 40px; }
+    .seg { padding:4px 6px; font-size:11px; }
+    .sep { font-size:15px; }
+    .bar-track { width:120px; }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-pre">claude code statusline</div>
+  <h1>Five themes,<br><em>one signal</em></h1>
+  <p class="hero-sub">Same layout, same data, same signal hierarchy. Each theme changes the mood — context always demands your eye.</p>
+</section>
+
+<!-- ═══════════ ALL THEMES AT 58% (GOLD) ═══════════ -->
+<div class="section">
+  <div class="section-label"><span>01</span> — same data, five moods · 58% context</div>
+  <div class="grid">
+
+    <!-- INSTRUMENT -->
+    <div class="card t-inst">
+      <div class="card-header">
+        <div class="card-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span class="card-title">CLAUDE_SL_THEME=instrument</span>
+        <span class="badge">classic</span>
+      </div>
+      <div class="card-body">
+        <div class="sl">
+          <span class="seg seg-dir">src/evaluator</span><span class="sep a-dir seg-git"></span>
+          <span class="seg seg-git">feature/mcp-integr… <span class="dim">+3 ~2 ↑1</span></span><span class="sep a-git seg-mdl"></span>
+          <span class="seg seg-mdl">Sonnet 4.5</span><span class="sep a-mdl seg-cy"></span>
+          <span class="seg seg-cy signal">58% <span class="dim">92k/160k</span></span><span class="sep a-cy seg-cost"></span>
+          <span class="seg seg-cost">$3.47 <span class="dim">$5.33/h</span></span><span class="sep a-cost seg-ln"></span>
+          <span class="seg seg-ln">+342 −87</span><span class="sep a-ln seg-dur"></span>
+          <span class="seg seg-dur">39m</span><span class="sep a-dur" style="background:var(--terminal)"></span>
+        </div>
+        <div class="ctx-bar"><span class="ctx-label">ctx</span><div class="bar-track"><div class="bar-fill y" style="width:58%"></div></div><span class="ctx-pct pct-y">58%</span> <span class="ctx-label">92k/160k</span></div>
+      </div>
+      <div class="note">tonal dark base · steel blue · violet · teal · warm gold cost</div>
+    </div>
+
+    <!-- TOKYO -->
+    <div class="card t-tokyo">
+      <div class="card-header">
+        <div class="card-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span class="card-title">CLAUDE_SL_THEME=tokyo</span>
+        <span class="badge">default</span>
+      </div>
+      <div class="card-body">
+        <div class="sl">
+          <span class="seg seg-dir">src/evaluator</span><span class="sep a-dir seg-git"></span>
+          <span class="seg seg-git">feature/mcp-integr… <span class="dim">+3 ~2 ↑1</span></span><span class="sep a-git seg-mdl"></span>
+          <span class="seg seg-mdl">Sonnet 4.5</span><span class="sep a-mdl seg-cy"></span>
+          <span class="seg seg-cy signal">58% <span class="dim">92k/160k</span></span><span class="sep a-cy seg-cost"></span>
+          <span class="seg seg-cost">$3.47 <span class="dim">$5.33/h</span></span><span class="sep a-cost seg-ln"></span>
+          <span class="seg seg-ln">+342 −87</span><span class="sep a-ln seg-dur"></span>
+          <span class="seg seg-dur">39m</span><span class="sep a-dur" style="background:var(--terminal)"></span>
+        </div>
+        <div class="ctx-bar"><span class="ctx-label">ctx</span><div class="bar-track"><div class="bar-fill y" style="width:58%"></div></div><span class="ctx-pct pct-y">58%</span> <span class="ctx-label">92k/160k</span></div>
+      </div>
+      <div class="note">deep indigo · neon violet git · electric cyan model · hot magenta critical</div>
+    </div>
+
+    <!-- EMBER -->
+    <div class="card t-ember">
+      <div class="card-header">
+        <div class="card-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span class="card-title">CLAUDE_SL_THEME=ember</span>
+        <span class="badge">warm</span>
+      </div>
+      <div class="card-body">
+        <div class="sl">
+          <span class="seg seg-dir">src/evaluator</span><span class="sep a-dir seg-git"></span>
+          <span class="seg seg-git">feature/mcp-integr… <span class="dim">+3 ~2 ↑1</span></span><span class="sep a-git seg-mdl"></span>
+          <span class="seg seg-mdl">Sonnet 4.5</span><span class="sep a-mdl seg-cy"></span>
+          <span class="seg seg-cy signal">58% <span class="dim">92k/160k</span></span><span class="sep a-cy seg-cost"></span>
+          <span class="seg seg-cost">$3.47 <span class="dim">$5.33/h</span></span><span class="sep a-cost seg-ln"></span>
+          <span class="seg seg-ln">+342 −87</span><span class="sep a-ln seg-dur"></span>
+          <span class="seg seg-dur">39m</span><span class="sep a-dur" style="background:var(--terminal)"></span>
+        </div>
+        <div class="ctx-bar"><span class="ctx-label">ctx</span><div class="bar-track"><div class="bar-fill y" style="width:58%"></div></div><span class="ctx-pct pct-y">58%</span> <span class="ctx-label">92k/160k</span></div>
+      </div>
+      <div class="note">warm charcoal · copper + amber foregrounds · forged metal feel</div>
+    </div>
+
+    <!-- FROST -->
+    <div class="card t-frost">
+      <div class="card-header">
+        <div class="card-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span class="card-title">CLAUDE_SL_THEME=frost</span>
+        <span class="badge">cool</span>
+      </div>
+      <div class="card-body">
+        <div class="sl">
+          <span class="seg seg-dir">src/evaluator</span><span class="sep a-dir seg-git"></span>
+          <span class="seg seg-git">feature/mcp-integr… <span class="dim">+3 ~2 ↑1</span></span><span class="sep a-git seg-mdl"></span>
+          <span class="seg seg-mdl">Sonnet 4.5</span><span class="sep a-mdl seg-cy"></span>
+          <span class="seg seg-cy signal">58% <span class="dim">92k/160k</span></span><span class="sep a-cy seg-cost"></span>
+          <span class="seg seg-cost">$3.47 <span class="dim">$5.33/h</span></span><span class="sep a-cost seg-ln"></span>
+          <span class="seg seg-ln">+342 −87</span><span class="sep a-ln seg-dur"></span>
+          <span class="seg seg-dur">39m</span><span class="sep a-dur" style="background:var(--terminal)"></span>
+        </div>
+        <div class="ctx-bar"><span class="ctx-label">ctx</span><div class="bar-track"><div class="bar-fill y" style="width:58%"></div></div><span class="ctx-pct pct-y">58%</span> <span class="ctx-label">92k/160k</span></div>
+      </div>
+      <div class="note">arctic navy · icy white + sharp blue · cockpit at altitude</div>
+    </div>
+
+    <!-- MONO -->
+    <div class="card t-mono">
+      <div class="card-header">
+        <div class="card-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span class="card-title">CLAUDE_SL_THEME=mono</span>
+        <span class="badge">minimal</span>
+      </div>
+      <div class="card-body">
+        <div class="sl">
+          <span class="seg seg-dir">src/evaluator</span><span class="sep a-dir seg-git"></span>
+          <span class="seg seg-git">feature/mcp-integr… <span class="dim">+3 ~2 ↑1</span></span><span class="sep a-git seg-mdl"></span>
+          <span class="seg seg-mdl">Sonnet 4.5</span><span class="sep a-mdl seg-cy"></span>
+          <span class="seg seg-cy signal">58% <span class="dim">92k/160k</span></span><span class="sep a-cy seg-cost"></span>
+          <span class="seg seg-cost">$3.47 <span class="dim">$5.33/h</span></span><span class="sep a-cost seg-ln"></span>
+          <span class="seg seg-ln">+342 −87</span><span class="sep a-ln seg-dur"></span>
+          <span class="seg seg-dur">39m</span><span class="sep a-dur" style="background:var(--terminal)"></span>
+        </div>
+        <div class="ctx-bar"><span class="ctx-label">ctx</span><div class="bar-track"><div class="bar-fill y" style="width:58%"></div></div><span class="ctx-pct pct-y">58%</span> <span class="ctx-label">92k/160k</span></div>
+      </div>
+      <div class="note">pure grayscale base · context is the ONLY color</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ CRITICAL WITH WORKTREE ═══════════ -->
+<div class="section">
+  <div class="section-label"><span>02</span> — critical context + worktree · 83%</div>
+  <div class="grid">
+
+    <div class="card t-tokyo">
+      <div class="card-header">
+        <div class="card-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span class="card-title">tokyo · worktree · vermillion</span>
+        <span class="badge" style="background:rgba(255,70,120,.08);color:rgb(255,70,120)">83%</span>
+      </div>
+      <div class="card-body">
+        <div class="sl">
+          <span class="seg seg-dir">eval-001</span><span class="sep a-dir seg-git"></span>
+          <span class="seg seg-git">eval/run-001 <span class="wt">⊕eval-001</span> <span class="dim">+12 ~5</span></span><span class="sep a-git seg-mdl"></span>
+          <span class="seg seg-mdl">Opus 4.5</span><span class="sep a-mdl seg-cr"></span>
+          <span class="seg seg-cr signal">83% <span class="dim">166k/200k</span></span><span class="sep a-cr seg-cost"></span>
+          <span class="seg seg-cost">$28.50 <span class="dim">$7.12/h</span></span><span class="sep a-cost seg-ln"></span>
+          <span class="seg seg-ln">+3200 −890</span><span class="sep a-ln seg-dur"></span>
+          <span class="seg seg-dur">4h0m</span><span class="sep a-dur" style="background:var(--terminal)"></span>
+        </div>
+        <div class="ctx-bar"><span class="ctx-label">ctx</span><div class="bar-track"><div class="bar-fill r" style="width:83%"></div></div><span class="ctx-pct pct-r">83%</span> <span class="ctx-label">166k/200k</span></div>
+      </div>
+    </div>
+
+    <div class="card t-ember">
+      <div class="card-header">
+        <div class="card-dots"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span class="card-title">ember · worktree · vermillion</span>
+        <span class="badge" style="background:rgba(250,85,50,.08);color:rgb(250,85,50)">83%</span>
+      </div>
+      <div class="card-body">
+        <div class="sl">
+          <span class="seg seg-dir">eval-001</span><span class="sep a-dir seg-git"></span>
+          <span class="seg seg-git">eval/run-001 <span class="wt">⊕eval-001</span> <span class="dim">+12 ~5</span></span><span class="sep a-git seg-mdl"></span>
+          <span class="seg seg-mdl">Opus 4.5</span><span class="sep a-mdl seg-cr"></span>
+          <span class="seg seg-cr signal">83% <span class="dim">166k/200k</span></span><span class="sep a-cr seg-cost"></span>
+          <span class="seg seg-cost">$28.50 <span class="dim">$7.12/h</span></span><span class="sep a-cost seg-ln"></span>
+          <span class="seg seg-ln">+3200 −890</span><span class="sep a-ln seg-dur"></span>
+          <span class="seg seg-dur">4h0m</span><span class="sep a-dur" style="background:var(--terminal)"></span>
+        </div>
+        <div class="ctx-bar"><span class="ctx-label">ctx</span><div class="bar-track"><div class="bar-fill r" style="width:83%"></div></div><span class="ctx-pct pct-r">83%</span> <span class="ctx-label">166k/200k</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ INSTALL ═══════════ -->
+<div class="install">
+  <div class="install-card">
+    <div class="install-header"><h3>Install</h3></div>
+    <div class="install-step">
+      <span class="step-num">01</span>
+      <div class="step-content">
+        <p>Copy the script</p>
+        <pre>cp claude-statusline.sh ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline.sh</pre>
+      </div>
+    </div>
+    <div class="install-step">
+      <span class="step-num">02</span>
+      <div class="step-content">
+        <p>Add to <code>~/.claude/settings.json</code></p>
+        <pre>{
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh",
+    "padding": 0
+  }
+}</pre>
+      </div>
+    </div>
+    <div class="install-step">
+      <span class="step-num">03</span>
+      <div class="step-content">
+        <p>Choose a theme</p>
+        <pre># In your shell profile (.bashrc, .zshrc, etc.)
+export CLAUDE_SL_THEME=tokyo       # default — neon indigo + violet
+export CLAUDE_SL_THEME=instrument  # tonal dark base
+export CLAUDE_SL_THEME=ember       # warm charcoal + copper
+export CLAUDE_SL_THEME=frost       # arctic navy + icy blue
+export CLAUDE_SL_THEME=mono        # grayscale, context only color</pre>
+      </div>
+    </div>
+    <div class="install-step">
+      <span class="step-num">04</span>
+      <div class="step-content">
+        <p>Restart Claude Code · requires a powerline-patched font</p>
+        <pre>deps: jq · git · bc</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
