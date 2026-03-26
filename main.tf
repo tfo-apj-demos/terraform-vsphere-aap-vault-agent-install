@@ -91,6 +91,22 @@ action "aap_job_launch" "vault_agent" {
   }
 }
 
+# Look up the AAP job template for nginx installation
+data "aap_job_template" "install_nginx" {
+  name              = "rhel-install-nginx"
+  organization_name = "Default"
+}
+
+# Launch the nginx install job as an action
+action "aap_job_launch" "install_nginx" {
+  config {
+    job_template_id                     = data.aap_job_template.install_nginx.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 1000
+  }
+}
+
 # Trigger the AAP job after VMs are created or updated
 resource "terraform_data" "vm_provisioned" {
 
@@ -99,7 +115,7 @@ resource "terraform_data" "vm_provisioned" {
   lifecycle {
     action_trigger {
       events  = [after_create, after_update]
-      actions = [action.aap_job_launch.vault_agent]
+      actions = [action.aap_job_launch.vault_agent, action.aap_job_launch.install_nginx]
     }
   }
 }
