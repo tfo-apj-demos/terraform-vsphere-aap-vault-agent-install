@@ -75,10 +75,26 @@ resource "aap_host" "vm_hosts" {
 }
 
 
+# Look up the AAP job template for RHEL registration
+data "aap_job_template" "rhel_register" {
+  name              = "rhel-register"
+  organization_name = "Default"
+}
+
 # Look up the AAP job template by name to avoid hardcoding IDs
 data "aap_job_template" "vault_agent" {
   name              = "rhel-install-vault-agent"
   organization_name = "Default"
+}
+
+# Launch the RHEL registration job as an action
+action "aap_job_launch" "rhel_register" {
+  config {
+    job_template_id                     = data.aap_job_template.rhel_register.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 1000
+  }
 }
 
 # Launch the AAP job as an action (fire-and-forget, not tracked in state)
@@ -115,7 +131,7 @@ resource "terraform_data" "vm_provisioned" {
   lifecycle {
     action_trigger {
       events  = [after_create, after_update]
-      actions = [action.aap_job_launch.vault_agent, action.aap_job_launch.install_nginx]
+      actions = [action.aap_job_launch.rhel_register, action.aap_job_launch.vault_agent, action.aap_job_launch.install_nginx]
     }
   }
 }
