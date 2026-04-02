@@ -13,6 +13,7 @@ variable "vm_config" {
     size               = string
     storage_profile    = string
     tier               = string
+    cert_service_type  = optional(string, "nginx")
   }))
 }
 

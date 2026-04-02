@@ -64,11 +64,12 @@ resource "aap_host" "vm_hosts" {
   name         = each.value.hostname
 
   variables = jsonencode({
-    os_type         = each.value.os_type
-    backup_policy   = each.value.backup_policy
-    storage_profile = each.value.storage_profile
-    tier            = each.value.tier
-    ansible_host    = module.single_virtual_machine[each.key].ip_address
+    os_type           = each.value.os_type
+    backup_policy     = each.value.backup_policy
+    storage_profile   = each.value.storage_profile
+    tier              = each.value.tier
+    cert_service_type = each.value.cert_service_type
+    ansible_host      = module.single_virtual_machine[each.key].ip_address
   })
 
   groups = [aap_group.vm_groups[each.value.security_profile].id]
@@ -126,7 +127,7 @@ action "aap_job_launch" "install_nginx" {
 # Trigger the AAP job after VMs are created or updated
 resource "terraform_data" "vm_provisioned" {
 
-  input      = local.vm_names
+  input = local.vm_names
 
   lifecycle {
     action_trigger {
