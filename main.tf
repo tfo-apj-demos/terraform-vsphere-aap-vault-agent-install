@@ -59,7 +59,7 @@ module "single_virtual_machine" {
     security_profile = each.value.security_profile
   }
 
-  disk_0_size = 40
+  disk_0_size = 60 # must be >= source template disk (50 GiB for this RHEL template)
   networks    = { "seg-general" = "dhcp" }
 
   # AD customization only applies to Windows; harmless for RHEL.
