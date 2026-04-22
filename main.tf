@@ -1,31 +1,72 @@
 # HCP Terraform: vSphere VM Build with Ansible Automation Platform and HashiCorp Vault Agent
+#
+# EXPERIMENT MODE: sourcing the underlying VM module directly from github
+# (bypassing the single-virtual-machine wrapper) so we can flip between
+# two variants that differ only in lifecycle.prevent_destroy:
+#
+#   GUARDED (prevent_destroy = true):
+#     git::https://github.com/tfo-apj-demos/terraform-vsphere-virtual-machine.git?ref=test/prevent-destroy
+#
+#   DESTROY-ALLOWED (no prevent_destroy):
+#     git::https://github.com/tfo-apj-demos/terraform-vsphere-virtual-machine-destroy-allowed.git?ref=v1.0.0
+#
+# The T-shirt sizing translations previously done inside single-virtual-machine
+# are inlined here as locals, because the underlying module takes concrete
+# cluster/datacenter/datastore/cpu/memory values.
 
-# Extract VM names for use in AAP job triggers
 locals {
   vm_names = {
     for vm_key, vm_value in module.single_virtual_machine :
     vm_key => vm_value.virtual_machine_name
   }
+
+  # T-shirt → vSphere translations (mirrors single-virtual-machine's locals).
+  sizes = {
+    small     = { cpu = 1, memory = 1024 }
+    medium    = { cpu = 2, memory = 2048 }
+    large     = { cpu = 4, memory = 4096 }
+    xlarge    = { cpu = 8, memory = 8192 }
+    "2xlarge" = { cpu = 16, memory = 16384 }
+    "4xlarge" = { cpu = 32, memory = 32768 }
+  }
+  sites            = { sydney = "Datacenter", canberra = "Datacenter", melbourne = "Datacenter" }
+  environments     = { dev = "cluster", test = "cluster", prod = "cluster" }
+  storage_profiles = { performance = "vsanDatastore", capacity = "vsanDatastore", standard = "vsanDatastore" }
+  tiers            = { gold = "Demo Workloads", silver = "Demo Workloads", bronze = "Demo Workloads", management = "Demo Management" }
 }
 
-# Build VMs using a private module from the Private Module Registry
+# Build VMs directly against terraform-vsphere-virtual-machine (guarded variant).
+# Flip `source` to the destroy-allowed repo to test the swap behavior.
 module "single_virtual_machine" {
-  for_each               = var.vm_config
-  source                 = "app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere"
-  version                = "1.6.2"
-  fallback_template_name = "base-rhel-9-20250501083042_vtpm" # Manual override
+  for_each = var.vm_config
+  source   = "git::https://github.com/tfo-apj-demos/terraform-vsphere-virtual-machine.git?ref=test/prevent-destroy"
 
-  hostname           = each.value.hostname
-  ad_domain          = each.value.ad_domain
-  backup_policy      = each.value.backup_policy
-  environment        = each.value.environment
-  os_type            = each.value.os_type
-  linux_distribution = each.value.linux_distribution
-  security_profile   = each.value.security_profile
-  site               = each.value.site
-  size               = each.value.size
-  storage_profile    = each.value.storage_profile
-  tier               = each.value.tier
+  hostname          = each.value.hostname
+  template          = "base-rhel-9-20250501083042_vtpm"
+  num_cpus          = local.sizes[each.value.size].cpu
+  memory            = local.sizes[each.value.size].memory
+  cluster           = local.environments[each.value.environment]
+  datacenter        = local.sites[each.value.site]
+  primary_datastore = local.storage_profiles[each.value.storage_profile]
+  resource_pool     = local.tiers[each.value.tier]
+
+  tags = {
+    environment      = each.value.environment
+    site             = each.value.site
+    backup_policy    = each.value.backup_policy
+    tier             = each.value.tier
+    storage_profile  = each.value.storage_profile
+    security_profile = each.value.security_profile
+  }
+
+  disk_0_size = 60 # must be >= source template disk (50 GiB for this RHEL template)
+  networks    = { "seg-general" = "dhcp" }
+
+  # AD customization only applies to Windows; harmless for RHEL.
+  ad_domain             = each.value.ad_domain
+  admin_password        = var.admin_password
+  domain_admin_user     = var.domain_admin_user
+  domain_admin_password = var.domain_admin_password
 }
 
 # Create an AAP inventory for this workspace
