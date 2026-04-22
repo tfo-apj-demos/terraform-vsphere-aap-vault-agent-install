@@ -59,7 +59,8 @@ module "single_virtual_machine" {
     security_profile = each.value.security_profile
   }
 
-  disk_0_size = 60 # must be >= source template disk (50 GiB for this RHEL template)
+  disk_0_size = 60               # must be >= source template disk (50 GiB)
+  folder_path = "Demo Workloads" # matches single-virtual-machine's default — vcenter user has clone perms here
   networks    = { "seg-general" = "dhcp" }
 
   # AD customization only applies to Windows; harmless for RHEL.
