@@ -12,7 +12,7 @@ locals {
 module "single_virtual_machine" {
   for_each               = var.vm_config
   source                 = "app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere"
-  version                = "1.6.2"
+  version                = "2.0.1"
   fallback_template_name = "base-rhel-9-20250501083042_vtpm" # Manual override
 
   hostname           = each.value.hostname
