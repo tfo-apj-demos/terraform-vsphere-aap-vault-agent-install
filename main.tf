@@ -11,8 +11,7 @@ locals {
 # Build VMs using a private module from the Private Module Registry
 module "single_virtual_machine" {
   for_each               = var.vm_config
-  source                 = "app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere"
-  version                = "1.6.2"
+  source                 = "git::https://github.com/tfo-apj-demos/terraform-vsphere-single-virtual-machine-prevent-destroy.git?ref=v1.0.0"
   fallback_template_name = "base-rhel-9-20250501083042_vtpm" # Manual override
 
   hostname           = each.value.hostname
