@@ -35,11 +35,11 @@ locals {
   tiers            = { gold = "Demo Workloads", silver = "Demo Workloads", bronze = "Demo Workloads", management = "Demo Management" }
 }
 
-# Build VMs directly against terraform-vsphere-virtual-machine (guarded variant).
-# Flip `source` to the destroy-allowed repo to test the swap behavior.
+# Build VMs directly against terraform-vsphere-virtual-machine-destroy-allowed.
+# Flipped from guarded to destroy-allowed to test swap behavior.
 module "single_virtual_machine" {
   for_each = var.vm_config
-  source   = "git::https://github.com/tfo-apj-demos/terraform-vsphere-virtual-machine.git?ref=test/prevent-destroy"
+  source   = "git::https://github.com/tfo-apj-demos/terraform-vsphere-virtual-machine-destroy-allowed.git?ref=v1.0.0"
 
   hostname          = each.value.hostname
   template          = "base-rhel-9-20250501083042_vtpm"
