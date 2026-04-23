@@ -39,7 +39,7 @@ locals {
 # Flipped from destroy-allowed to guarded to test if the guard attaches to a live VM.
 module "single_virtual_machine" {
   for_each = var.vm_config
-  source   = "git::https://github.com/tfo-apj-demos/terraform-vsphere-virtual-machine.git?ref=test/prevent-destroy"
+  source   = "git::https://github.com/tfo-apj-demos/terraform-vsphere-virtual-machine-destroy-allowed.git?ref=v1.0.0"
 
   hostname          = each.value.hostname
   template          = "base-rhel-9-20250501083042_vtpm"
