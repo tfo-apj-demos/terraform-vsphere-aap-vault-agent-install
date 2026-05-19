@@ -1,77 +1,21 @@
-# Terraform vSphere VM Build with AAP + Vault Agent
+# Better Together: On-Prem VM Lifecycle
 
-Provisions vSphere VMs via HCP Terraform, then hands off to Ansible Automation Platform (AAP) for Day 2 configuration — specifically installing and configuring the HashiCorp Vault Agent with TLS authentication via vTPM.
+A reference pattern showing the **HashiCorp × Red Hat "Better Together"** integration for on-prem VM lifecycle on vSphere: **Terraform** provisions the VM, **Ansible Automation Platform (AAP)** configures it, and **HashiCorp Vault** (via the Vault Agent) supplies its runtime secrets.
 
-This repo follows the [HashiCorp Validated Pattern for AAP + Terraform](https://developer.hashicorp.com/validated-patterns) integration and draws on [Glenn Chia's guide](https://medium.com/@glenn.chia) for the Terraform-to-AAP handoff pattern.
+The aim is a single, declarative workflow that takes a VM from "doesn't exist" to "running, configured, and pulling secrets from Vault" — and back down again — without imperative scripting.
 
-## Prerequisites
+## Architecture
 
-- **Terraform >= 1.14** — required for `action` block support
-- **HCP Terraform** workspace with vSphere, AAP, and HCP credentials configured
-- **Ansible Automation Platform** with the `1-install-vault-agent` job template
-- **vSphere** environment with RHEL 9 templates (built via HCP Packer)
+![Better Together — On-Prem VM Lifecycle architecture](docs/architecture.svg)
 
-## Architecture Flow
+The flow above is what the code in this repo executes end-to-end:
 
-```
-HCP Terraform (plan/apply)
-  │
-  ├─ module.single_virtual_machine  ─►  vSphere VMs provisioned
-  ├─ aap_inventory / aap_host       ─►  AAP inventory populated
-  └─ action_trigger (after_create)   ─►  AAP job launched
-                                           └─ Vault Agent installed + configured
-```
+1. **Commit** — An engineer pushes Terraform config to this GitHub repo.
+2. **VCS webhook** — The push triggers a plan in the HCP Terraform workspace.
+3. **Playbook sync** — Independently, AAP keeps its project synced from a separate source owned by the automation team (a different VCS repo or Automation Hub collection). This decoupling lets the platform and automation teams iterate on their own cadence.
+4. **Register & trigger** — On apply, Terraform creates the AAP inventory entries (`aap_inventory`, `aap_group`, `aap_host`) and triggers the job (`aap_job`).
+5. **Provision** — Terraform creates the Linux VM in vSphere via the private `single-virtual-machine` module.
+6. **Configure** — AAP SSHes into the VM and runs the playbook from step 3 to install and configure the Vault Agent.
+7. **Secrets at runtime** — The Vault Agent on the VM authenticates to Vault and pulls runtime secrets — no static credentials in the VM image.
 
-### Action Block Pattern (Terraform 1.14+)
-
-Instead of using `resource "aap_job"` (which persists in Terraform state), this repo uses an `action "aap_job_launch"` block. Actions are fire-and-forget operations that execute during `terraform apply` but are not tracked in state. The `action_trigger` lifecycle hook on `terraform_data.vm_provisioned` fires the AAP job after VMs are created or updated.
-
-```hcl
-action "aap_job_launch" "vault_agent" {
-  config {
-    job_template_id = data.aap_job_template.vault_agent.id
-    inventory_id    = aap_inventory.vm_inventory.id
-    ...
-  }
-}
-
-resource "terraform_data" "vm_provisioned" {
-  input = local.vm_names
-
-  lifecycle {
-    action_trigger {
-      events  = [after_create, after_update]
-      actions = [action.aap_job_launch.vault_agent]
-    }
-  }
-}
-```
-
-## Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `vm_config` | Map of VM configurations (hostname, OS, site, size, etc.) | — |
-| `TFC_PROJECT_NAME` | HCP Terraform project name (auto-injected) | `"Default Project"` |
-| `TFC_WORKSPACE_NAME` | HCP Terraform workspace name (auto-injected) | `"terraform-vsphere-vm-aap-vault-agent"` |
-| `ad_domain_name` | Active Directory domain name | `null` |
-| `domain_admin_user` | Domain administrator username | `null` |
-
-## Outputs
-
-| Output | Description |
-|--------|-------------|
-| `vm_names` | Map of VM keys to their names |
-| `vm_ip_addresses` | Map of VM keys to their IP addresses |
-| `aap_inventory_id` | AAP inventory ID for downstream use |
-| `aap_inventory_name` | AAP inventory name for traceability |
-
-## File Structure
-
-| File | Purpose |
-|------|---------|
-| `main.tf` | VM module, AAP inventory/hosts/groups, action block + trigger |
-| `provider.tf` | Provider and Terraform version constraints |
-| `variables.tf` | Input variable definitions |
-| `demo.auto.tfvars` | VM configuration values |
-| `output.tf` | Output definitions |
+Sentinel sits between plan and apply in HCP Terraform to enforce policy guardrails (e.g. allowed VM sizes, required tags, network placement) before any change reaches vSphere.

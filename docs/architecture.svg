@@ -1,0 +1,238 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 860"
+     font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+     role="img" aria-label="Better Together on-prem VM lifecycle architecture: a Terraform config in GitHub triggers an HCP Terraform workspace (with Sentinel policy guardrails), which provisions a vSphere Linux VM and orchestrates the Ansible Automation Platform. AAP holds the playbook from a separate source, SSHes into the VM, and installs the Vault Agent, which then pulls runtime secrets from HashiCorp Vault.">
+  <title>Better Together — On-Prem VM Lifecycle</title>
+
+  <defs>
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+
+    <marker id="arrowSolid"  viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7B8794"/>
+    </marker>
+    <marker id="arrowPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9C7BFF"/>
+    </marker>
+    <marker id="arrowRed"    viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#F47B73"/>
+    </marker>
+    <marker id="arrowYellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#FFEC6E"/>
+    </marker>
+
+    <style>
+      .h1         { font-size: 24px; font-weight: 700; fill: #E6E8EC; }
+      .sub        { font-size: 13px; fill: #8B95A1; }
+      .eyebrow    { font-size: 10px; fill: #8B95A1; letter-spacing: 2px; font-weight: 600; }
+      .cardTitle  { font-size: 14px; font-weight: 700; fill: #E6E8EC; }
+      .cardLabel  { font-size: 12px; font-weight: 600; fill: #E6E8EC; }
+      .meta       { font-size: 11px; fill: #8B95A1; }
+      .stepLabel  { font-size: 11px; fill: #C9D1D9; font-weight: 600; }
+      .stepBubbleText { font-size: 12px; font-weight: 700; fill: #0F1419; }
+      .legendH    { font-size: 12px; font-weight: 700; fill: #E6E8EC; }
+      .legendBody { font-size: 11px; fill: #C9D1D9; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="860" fill="#0F1419"/>
+
+  <!-- ====== TITLE ====== -->
+  <text class="h1"  x="40" y="50">Better Together — On-Prem VM Lifecycle</text>
+  <text class="sub" x="40" y="76">One commit → policy-checked provisioning, automated configuration, runtime secrets on vSphere.</text>
+
+  <!-- ====================================================================== -->
+  <!-- ROW 1 · SOURCES                                                        -->
+  <!-- ====================================================================== -->
+
+  <!-- Engineer actor -->
+  <g transform="translate(70, 220)">
+    <circle r="24" fill="#252B33" stroke="#3A434F" stroke-width="1.5"/>
+    <circle cx="0" cy="-6" r="6" fill="#8B95A1"/>
+    <path d="M-10,12 a10,10 0 0 1 20,0 z" fill="#8B95A1"/>
+    <text class="meta" x="0" y="50" text-anchor="middle">Platform Engineer</text>
+  </g>
+
+  <!-- VCS — this repo (Terraform config only) -->
+  <g transform="translate(190, 140)">
+    <rect width="260" height="170" rx="12" fill="#1B2027" stroke="#3A434F" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <text class="eyebrow"   x="20" y="28">VCS — INFRASTRUCTURE</text>
+    <text class="cardTitle" x="20" y="52">GitHub · this repo</text>
+    <text class="meta"      x="20" y="72">tfo-apj-demos/better-together-vm-lifecycle</text>
+
+    <g transform="translate(20, 96)">
+      <rect width="220" height="50" rx="6" fill="#252B33"/>
+      <rect x="14" y="17" width="16" height="16" rx="3" fill="#7C46FA"/>
+      <text class="cardLabel" x="42" y="28">Terraform config</text>
+      <text class="meta"      x="42" y="44">main.tf · variables · modules</text>
+    </g>
+  </g>
+
+  <!-- AAP project source (separate VCS / collection) -->
+  <g transform="translate(540, 140)">
+    <rect width="260" height="170" rx="12" fill="#1B2027" stroke="#3A434F" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <text class="eyebrow"   x="20" y="28">AAP PROJECT SOURCE</text>
+    <text class="cardTitle" x="20" y="52">Separate repo / collection</text>
+    <text class="meta"      x="20" y="72">Owned by the automation team</text>
+
+    <g transform="translate(20, 96)">
+      <rect width="220" height="50" rx="6" fill="#252B33"/>
+      <rect x="14" y="17" width="16" height="16" rx="3" fill="#E5524A"/>
+      <text class="cardLabel" x="42" y="28">Ansible playbook</text>
+      <text class="meta"      x="42" y="44">install Vault Agent · day-2 ops</text>
+    </g>
+  </g>
+
+  <!-- ====================================================================== -->
+  <!-- ROW 2 · ORCHESTRATION                                                  -->
+  <!-- ====================================================================== -->
+
+  <!-- HCP Terraform card -->
+  <g transform="translate(130, 410)">
+    <rect width="400" height="240" rx="12" fill="#1B2027" stroke="#7C46FA" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="400" height="44" rx="12" fill="#7C46FA" opacity="0.18"/>
+    <text class="cardTitle" x="20" y="29" fill="#B89BFD">HCP Terraform</text>
+    <text class="eyebrow"   x="380" y="29" text-anchor="end">PROVISION + POLICY</text>
+
+    <g transform="translate(20, 64)">
+      <rect width="360" height="76" rx="8" fill="#252B33"/>
+      <text class="cardLabel" x="14" y="24">Workspace</text>
+      <text class="meta"      x="14" y="44">better-together-vm-lifecycle-dev</text>
+      <text class="meta"      x="14" y="62">plan → apply → outputs (IP, hostname)</text>
+    </g>
+
+    <g transform="translate(20, 156)">
+      <rect width="360" height="68" rx="8" fill="#252B33"/>
+      <text class="cardLabel" x="14" y="24">Sentinel — Policy as Code</text>
+      <text class="meta"      x="14" y="44">Guardrails enforced between</text>
+      <text class="meta"      x="14" y="60">plan and apply</text>
+    </g>
+  </g>
+
+  <!-- AAP card -->
+  <g transform="translate(610, 410)">
+    <rect width="400" height="240" rx="12" fill="#1B2027" stroke="#E5524A" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="400" height="44" rx="12" fill="#E5524A" opacity="0.18"/>
+    <text class="cardTitle" x="20" y="29" fill="#F47B73">Ansible Automation Platform</text>
+    <text class="eyebrow"   x="380" y="29" text-anchor="end">CONFIGURE</text>
+
+    <g transform="translate(20, 64)">
+      <rect width="360" height="76" rx="8" fill="#252B33"/>
+      <text class="cardLabel" x="14" y="24">Inventory — Hosts &amp; Groups</text>
+      <text class="meta"      x="14" y="44">Registered dynamically by Terraform</text>
+      <text class="meta"      x="14" y="62">aap_inventory · aap_group · aap_host</text>
+    </g>
+
+    <g transform="translate(20, 156)">
+      <rect width="360" height="68" rx="8" fill="#252B33"/>
+      <text class="cardLabel" x="14" y="24">Job Template — install Vault Agent</text>
+      <text class="meta"      x="14" y="44">Triggered from Terraform</text>
+      <text class="meta"      x="14" y="60">via aap_job resource</text>
+    </g>
+  </g>
+
+  <!-- Vault card -->
+  <g transform="translate(1060, 410)">
+    <rect width="180" height="240" rx="12" fill="#1B2027" stroke="#FFEC6E" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect width="180" height="44" rx="12" fill="#FFEC6E" opacity="0.15"/>
+    <text class="cardTitle" x="20" y="29" fill="#FFEC6E">Vault</text>
+    <text class="eyebrow"   x="160" y="29" text-anchor="end">SECRETS</text>
+
+    <g transform="translate(20, 64)">
+      <text class="cardLabel" x="0" y="14">KV secrets</text>
+      <text class="meta"      x="0" y="32">app, DB, TLS</text>
+
+      <text class="cardLabel" x="0" y="74">Auth methods</text>
+      <text class="meta"      x="0" y="92">configured per VM</text>
+
+      <text class="cardLabel" x="0" y="134">Vault Agent</text>
+      <text class="meta"      x="0" y="152">deployed on every VM</text>
+    </g>
+  </g>
+
+  <!-- ====================================================================== -->
+  <!-- ROW 3 · RUNTIME (vSphere)                                              -->
+  <!-- ====================================================================== -->
+
+  <g transform="translate(130, 740)">
+    <rect width="1110" height="100" rx="12" fill="#1B2027" stroke="#3A434F" stroke-width="1.5" filter="url(#cardShadow)"/>
+    <text class="eyebrow"   x="20" y="28">PRIVATE CLOUD</text>
+    <text class="cardTitle" x="20" y="52">vSphere</text>
+    <text class="meta"      x="20" y="72">Provisioned + configured Linux VM with Vault Agent</text>
+
+    <!-- VM block -->
+    <g transform="translate(740, 22)">
+      <rect width="350" height="62" rx="8" fill="#252B33" stroke="#3A434F" stroke-width="1"/>
+      <rect x="14" y="14" width="22" height="34" rx="2" fill="#5C6573"/>
+      <rect x="42" y="14" width="22" height="34" rx="2" fill="#5C6573"/>
+      <text class="cardLabel" x="78" y="28">Linux VM (web-server-01)</text>
+      <text class="meta"      x="78" y="46">Vault Agent · SSH (AAP-managed)</text>
+    </g>
+  </g>
+
+  <!-- ====================================================================== -->
+  <!-- ARROWS & STEP BUBBLES                                                  -->
+  <!-- All labels live in clear gutters between cards.                        -->
+  <!-- ====================================================================== -->
+
+  <!-- 1 · Engineer → GitHub -->
+  <line x1="100" y1="220" x2="182" y2="220" stroke="#7B8794" stroke-width="2" marker-end="url(#arrowSolid)"/>
+  <g transform="translate(140, 200)">
+    <circle r="12" fill="#7B8794"/>
+    <text class="stepBubbleText" y="4" text-anchor="middle">1</text>
+  </g>
+  <text class="stepLabel" x="140" y="252" text-anchor="middle">commit</text>
+
+  <!-- 2 · GitHub (TF) → HCP Terraform — pure vertical in gutter -->
+  <path d="M320,310 L320,410" stroke="#9C7BFF" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+  <g transform="translate(320, 350)">
+    <circle r="12" fill="#7C46FA"/>
+    <text class="stepBubbleText" y="4" text-anchor="middle">2</text>
+  </g>
+  <text class="stepLabel" x="340" y="380" fill="#B89BFD">VCS webhook</text>
+
+  <!-- 3 · AAP Project source → AAP — pure vertical in gutter -->
+  <path d="M670,310 L670,410" stroke="#F47B73" stroke-width="2" fill="none" marker-end="url(#arrowRed)" stroke-dasharray="6 4"/>
+  <g transform="translate(670, 350)">
+    <circle r="12" fill="#E5524A"/>
+    <text class="stepBubbleText" y="4" text-anchor="middle">3</text>
+  </g>
+  <text class="stepLabel" x="690" y="380" fill="#F47B73">playbook sync</text>
+
+  <!-- 4a · HCP TF → AAP Inventory (horizontal in card gutter) -->
+  <line x1="535" y1="490" x2="605" y2="490" stroke="#9C7BFF" stroke-width="2" marker-end="url(#arrowPurple)"/>
+  <g transform="translate(570, 472)">
+    <circle r="12" fill="#7C46FA"/>
+    <text class="stepBubbleText" y="4" text-anchor="middle">4</text>
+  </g>
+  <text class="stepLabel" x="570" y="514" text-anchor="middle" fill="#B89BFD">register host</text>
+
+  <!-- 4b · HCP TF → AAP Job Template (parallel arrow, same step) -->
+  <line x1="535" y1="588" x2="605" y2="588" stroke="#9C7BFF" stroke-width="2" marker-end="url(#arrowPurple)"/>
+  <text class="stepLabel" x="570" y="610" text-anchor="middle" fill="#B89BFD">trigger job</text>
+
+  <!-- 5 · HCP TF → vSphere VM (provision) -->
+  <path d="M330,653 L330,740" stroke="#9C7BFF" stroke-width="2" fill="none" marker-end="url(#arrowPurple)"/>
+  <g transform="translate(330, 692)">
+    <circle r="12" fill="#7C46FA"/>
+    <text class="stepBubbleText" y="4" text-anchor="middle">5</text>
+  </g>
+  <text class="stepLabel" x="352" y="700" fill="#B89BFD">provision VM</text>
+
+  <!-- 6 · AAP Job → vSphere VM (SSH) -->
+  <path d="M810,653 L810,740" stroke="#F47B73" stroke-width="2" fill="none" marker-end="url(#arrowRed)"/>
+  <g transform="translate(810, 692)">
+    <circle r="12" fill="#E5524A"/>
+    <text class="stepBubbleText" y="4" text-anchor="middle">6</text>
+  </g>
+  <text class="stepLabel" x="832" y="700" fill="#F47B73">SSH + run playbook</text>
+
+  <!-- 7 · Vault → Vault Agent on VM -->
+  <path d="M1150,653 L1150,740" stroke="#FFEC6E" stroke-width="2" fill="none" marker-end="url(#arrowYellow)"/>
+  <g transform="translate(1150, 692)">
+    <circle r="12" fill="#FFEC6E"/>
+    <text class="stepBubbleText" y="4" text-anchor="middle">7</text>
+  </g>
+  <text class="stepLabel" x="1140" y="700" text-anchor="end" fill="#FFEC6E">secrets at runtime</text>
+</svg>
