@@ -30,7 +30,10 @@ terraform {
     }
     dns = {
       source  = "hashicorp/dns"
-      version = "~> 3.6"
+      # Pinned below 3.6.0 — 3.6.0 broke GSS-TSIG against Windows AD DNS via
+      # the bodgit/tsig 1.3.0 dep bump. See docs/DNS-GSS-TSIG-INVESTIGATION.md
+      # and hashicorp/terraform-provider-dns#642.
+      version = ">= 3.4.3, < 3.6.0"
     }
     random = {
       source  = "hashicorp/random"
