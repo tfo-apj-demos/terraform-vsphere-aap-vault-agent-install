@@ -55,4 +55,5 @@ provider "hcp" {
 
 # Ansible Automation Platform provider
 provider "aap" {
+  timeout = 30
 }
