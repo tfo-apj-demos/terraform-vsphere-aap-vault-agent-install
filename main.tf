@@ -1,19 +1,123 @@
 # HCP Terraform: vSphere VM Build with Ansible Automation Platform and HashiCorp Vault Agent
+#
+# Lifecycle wiring:
+#   terraform_data.vm_lifecycle_pre  → before_create / before_update
+#   terraform_data.vm_provisioned    → after_create  / after_update
+#
+# vm_lifecycle_pre runs BEFORE the VM module (the module has depends_on into
+# it) so CMDB / IPAM / snapshot / LB-drain jobs fire while there's still time
+# to react. aap_host is independent of the module (uses FQDN for
+# ansible_host) so AAP inventory is populated by the time before_create
+# fires.
 
-# Extract VM names for use in AAP job triggers
 locals {
   vm_names = {
     for vm_key, vm_value in module.single_virtual_machine :
     vm_key => vm_value.virtual_machine_name
   }
+  vm_ips = {
+    for vm_key, vm_value in module.single_virtual_machine :
+    vm_key => vm_value.ip_address
+  }
 }
 
-# Build VMs using a private module from the Private Module Registry
+# ─────────────────────────────────────────────────────────────────────────
+# AAP inventory & host registration (created BEFORE the VM module so
+# pre-VM action triggers run against a populated inventory).
+# ─────────────────────────────────────────────────────────────────────────
+
+resource "aap_inventory" "vm_inventory" {
+  name        = "Better Together Demo - ${var.TFC_PROJECT_NAME} - ${var.TFC_WORKSPACE_NAME}"
+  description = "Inventory for VMs built with HCP Terraform and managed by AAP"
+
+  variables = jsonencode({
+    os                 = values(var.vm_config)[0].os_type
+    linux_distribution = values(var.vm_config)[0].linux_distribution
+  })
+}
+
+resource "aap_group" "vm_groups" {
+  for_each = toset([
+    for vm in var.vm_config : vm.security_profile
+    if length(vm.security_profile) > 0
+  ])
+
+  inventory_id = aap_inventory.vm_inventory.id
+  name         = replace(each.value, "-", "_")
+
+  variables = jsonencode({
+    site = [for vm in var.vm_config : vm.site if vm.security_profile == each.value][0]
+    env  = [for vm in var.vm_config : vm.environment if vm.security_profile == each.value][0]
+  })
+}
+
+resource "aap_host" "vm_hosts" {
+  for_each = var.vm_config
+
+  inventory_id = aap_inventory.vm_inventory.id
+  name         = each.value.hostname
+
+  variables = jsonencode({
+    os_type            = each.value.os_type
+    backup_policy      = each.value.backup_policy
+    storage_profile    = each.value.storage_profile
+    tier               = each.value.tier
+    cert_service_type  = each.value.cert_service_type
+    site               = each.value.site
+    env                = each.value.environment
+    security_profile   = each.value.security_profile
+    ad_domain          = each.value.ad_domain
+    tfc_workspace_name = var.TFC_WORKSPACE_NAME
+    tfc_run_id         = var.TFC_RUN_ID
+    # Use the FQDN for SSH so pre-VM jobs see this host before the VM
+    # exists. Once the VM module runs, its DNS provider (see provider.tf)
+    # registers the A record and SSH resolves to the right IP.
+    ansible_host = "${each.value.hostname}.${each.value.ad_domain}"
+  })
+
+  groups = [aap_group.vm_groups[each.value.security_profile].id]
+}
+
+# ─────────────────────────────────────────────────────────────────────────
+# Pre-VM lifecycle hook
+# ─────────────────────────────────────────────────────────────────────────
+
+resource "terraform_data" "vm_lifecycle_pre" {
+  # Tracks any change to vm_config so before_update fires on size/site/profile
+  # changes too, not just on host add/remove.
+  input = var.vm_config
+
+  # Inventory must exist before action_trigger fires, so wait for hosts.
+  depends_on = [aap_host.vm_hosts]
+
+  lifecycle {
+    action_trigger {
+      events = [before_create]
+      actions = [
+        action.aap_job_launch.cmdb_change_open,
+        action.aap_job_launch.ipam_reserve,
+      ]
+    }
+    action_trigger {
+      events = [before_update]
+      actions = [
+        action.aap_job_launch.cmdb_change_open,
+        action.aap_job_launch.vsphere_snapshot,
+        action.aap_job_launch.lb_pool_drain,
+      ]
+    }
+  }
+}
+
+# ─────────────────────────────────────────────────────────────────────────
+# VM build (private module from PMR)
+# ─────────────────────────────────────────────────────────────────────────
+
 module "single_virtual_machine" {
   for_each               = var.vm_config
   source                 = "app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere"
   version                = "~> 2.0"
-  fallback_template_name = "base-rhel-9-20250501083042_vtpm" # Manual override
+  fallback_template_name = "base-rhel-9-20250501083042_vtpm"
 
   hostname           = each.value.hostname
   ad_domain          = each.value.ad_domain
@@ -26,69 +130,104 @@ module "single_virtual_machine" {
   size               = each.value.size
   storage_profile    = each.value.storage_profile
   tier               = each.value.tier
+
+  # Ensure pre-VM action triggers (CMDB / IPAM) complete before the VM is
+  # built — IPAM in particular must allocate the IP before vSphere asks for one.
+  depends_on = [terraform_data.vm_lifecycle_pre]
 }
 
-# Create an AAP inventory for this workspace
-resource "aap_inventory" "vm_inventory" {
-  name        = "Better Together Demo - ${var.TFC_PROJECT_NAME} - ${var.TFC_WORKSPACE_NAME}"
-  description = "Inventory for VMs built with HCP Terraform and managed by AAP"
+# ─────────────────────────────────────────────────────────────────────────
+# Job template data sources
+# ─────────────────────────────────────────────────────────────────────────
 
-  variables = jsonencode({
-    os                 = values(var.vm_config)[0].os_type
-    linux_distribution = values(var.vm_config)[0].linux_distribution
-  })
-}
-
-# Create AAP groups per security profile
-resource "aap_group" "vm_groups" {
-  for_each = toset([
-    for vm in var.vm_config : vm.security_profile
-    if length(vm.security_profile) > 0
-  ])
-
-  inventory_id = aap_inventory.vm_inventory.id
-  name         = replace(each.value, "-", "_")
-
-  variables = jsonencode({
-    # Get the first VM with this security profile for site/env values
-    site = [for vm in var.vm_config : vm.site if vm.security_profile == each.value][0]
-    env  = [for vm in var.vm_config : vm.environment if vm.security_profile == each.value][0]
-  })
-}
-
-# Create AAP hosts from the VM config
-resource "aap_host" "vm_hosts" {
-  for_each = var.vm_config
-
-  inventory_id = aap_inventory.vm_inventory.id
-  name         = each.value.hostname
-
-  variables = jsonencode({
-    os_type           = each.value.os_type
-    backup_policy     = each.value.backup_policy
-    storage_profile   = each.value.storage_profile
-    tier              = each.value.tier
-    cert_service_type = each.value.cert_service_type
-    ansible_host      = module.single_virtual_machine[each.key].ip_address
-  })
-
-  groups = [aap_group.vm_groups[each.value.security_profile].id]
-}
-
-
-# Look up the AAP job template for RHEL registration
+# Existing (kept):
 data "aap_job_template" "rhel_register" {
   name              = "rhel-register"
   organization_name = "Default"
 }
 
-# Look up the AAP job template by name to avoid hardcoding IDs
 data "aap_job_template" "vault_agent" {
   name              = "rhel-install-vault-agent"
   organization_name = "Default"
 }
 
-# Launch the RHEL registration job as an action
+data "aap_job_template" "install_nginx" {
+  name              = "rhel-install-nginx"
+  organization_name = "Default"
+}
+
+# Pre-VM (before_create / before_update):
+data "aap_job_template" "cmdb_change_open" {
+  name              = "pre-cmdb-change-open"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "ipam_reserve" {
+  name              = "pre-ipam-reserve"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "vsphere_snapshot" {
+  name              = "pre-vsphere-snapshot"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "lb_pool_drain" {
+  name              = "pre-lb-pool-drain"
+  organization_name = "Default"
+}
+
+# Post-VM (after_create / after_update):
+data "aap_job_template" "cis_hardening" {
+  name              = "rhel-cis-hardening"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "chrony_timesync" {
+  name              = "rhel-chrony-timesync"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "ad_domain_join" {
+  name              = "rhel-ad-domain-join"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "splunk_uf_install" {
+  name              = "rhel-splunk-uf-install"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "crowdstrike_install" {
+  name              = "rhel-crowdstrike-install"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "qualys_install" {
+  name              = "rhel-qualys-install"
+  organization_name = "Default"
+}
+
+# Post-update validation & re-enable:
+data "aap_job_template" "post_change_validate" {
+  name              = "rhel-post-change-validate"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "lb_pool_reenable" {
+  name              = "post-lb-pool-reenable"
+  organization_name = "Default"
+}
+
+# ─────────────────────────────────────────────────────────────────────────
+# Action blocks
+#
+# Each action.aap_job_launch wraps one AAP job template. wait_for_completion
+# is true so any failure propagates up and fails the Terraform apply — which
+# is what a bank change-control workflow expects.
+# ─────────────────────────────────────────────────────────────────────────
+
+# Existing:
 action "aap_job_launch" "rhel_register" {
   config {
     job_template_id                     = data.aap_job_template.rhel_register.id
@@ -98,7 +237,6 @@ action "aap_job_launch" "rhel_register" {
   }
 }
 
-# Launch the AAP job as an action (fire-and-forget, not tracked in state)
 action "aap_job_launch" "vault_agent" {
   config {
     job_template_id                     = data.aap_job_template.vault_agent.id
@@ -108,13 +246,6 @@ action "aap_job_launch" "vault_agent" {
   }
 }
 
-# Look up the AAP job template for nginx installation
-data "aap_job_template" "install_nginx" {
-  name              = "rhel-install-nginx"
-  organization_name = "Default"
-}
-
-# Launch the nginx install job as an action
 action "aap_job_launch" "install_nginx" {
   config {
     job_template_id                     = data.aap_job_template.install_nginx.id
@@ -124,15 +255,148 @@ action "aap_job_launch" "install_nginx" {
   }
 }
 
-# Trigger the AAP job after VMs are created or updated
-resource "terraform_data" "vm_provisioned" {
+# Pre-VM:
+action "aap_job_launch" "cmdb_change_open" {
+  config {
+    job_template_id                     = data.aap_job_template.cmdb_change_open.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 600
+  }
+}
 
+action "aap_job_launch" "ipam_reserve" {
+  config {
+    job_template_id                     = data.aap_job_template.ipam_reserve.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 600
+  }
+}
+
+action "aap_job_launch" "vsphere_snapshot" {
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_snapshot.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 1200
+  }
+}
+
+action "aap_job_launch" "lb_pool_drain" {
+  config {
+    job_template_id                     = data.aap_job_template.lb_pool_drain.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 600
+  }
+}
+
+# Post-VM (after_create / after_update):
+action "aap_job_launch" "cis_hardening" {
+  config {
+    job_template_id                     = data.aap_job_template.cis_hardening.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 1200
+  }
+}
+
+action "aap_job_launch" "chrony_timesync" {
+  config {
+    job_template_id                     = data.aap_job_template.chrony_timesync.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 600
+  }
+}
+
+action "aap_job_launch" "ad_domain_join" {
+  config {
+    job_template_id                     = data.aap_job_template.ad_domain_join.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 900
+  }
+}
+
+action "aap_job_launch" "splunk_uf_install" {
+  config {
+    job_template_id                     = data.aap_job_template.splunk_uf_install.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 1200
+  }
+}
+
+action "aap_job_launch" "crowdstrike_install" {
+  config {
+    job_template_id                     = data.aap_job_template.crowdstrike_install.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 1200
+  }
+}
+
+action "aap_job_launch" "qualys_install" {
+  config {
+    job_template_id                     = data.aap_job_template.qualys_install.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 900
+  }
+}
+
+# Post-update only:
+action "aap_job_launch" "post_change_validate" {
+  config {
+    job_template_id                     = data.aap_job_template.post_change_validate.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 600
+  }
+}
+
+action "aap_job_launch" "lb_pool_reenable" {
+  config {
+    job_template_id                     = data.aap_job_template.lb_pool_reenable.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 900
+  }
+}
+
+# ─────────────────────────────────────────────────────────────────────────
+# Post-VM lifecycle hook
+# ─────────────────────────────────────────────────────────────────────────
+
+resource "terraform_data" "vm_provisioned" {
   input = local.vm_names
 
   lifecycle {
+    # Idempotent configuration applied on both create and update.
     action_trigger {
-      events  = [after_create, after_update]
-      actions = [action.aap_job_launch.rhel_register, action.aap_job_launch.vault_agent, action.aap_job_launch.install_nginx]
+      events = [after_create, after_update]
+      actions = [
+        action.aap_job_launch.rhel_register,
+        action.aap_job_launch.cis_hardening,
+        action.aap_job_launch.chrony_timesync,
+        action.aap_job_launch.ad_domain_join,
+        action.aap_job_launch.vault_agent,
+        action.aap_job_launch.splunk_uf_install,
+        action.aap_job_launch.crowdstrike_install,
+        action.aap_job_launch.qualys_install,
+        action.aap_job_launch.install_nginx,
+      ]
+    }
+
+    # Update-only — these only make sense after the VM was already in service.
+    action_trigger {
+      events = [after_update]
+      actions = [
+        action.aap_job_launch.post_change_validate,
+        action.aap_job_launch.lb_pool_reenable,
+      ]
     }
   }
 }

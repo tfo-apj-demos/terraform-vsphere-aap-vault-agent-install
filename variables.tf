@@ -30,6 +30,12 @@ variable "TFC_WORKSPACE_NAME" {
   default     = "terraform-vsphere-vm-aap-vault-agent"
 }
 
+variable "TFC_RUN_ID" {
+  description = "The HCP Terraform run ID. Auto-injected by HCP Terraform; surfaced into ServiceNow change records for end-to-end audit traceability."
+  type        = string
+  default     = "manual"
+}
+
 variable "ad_domain_name" {
   description = "The name of the Active Directory domain."
   type        = string
