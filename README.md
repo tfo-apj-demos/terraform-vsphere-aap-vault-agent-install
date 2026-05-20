@@ -29,13 +29,18 @@ guardrails before any change reaches vSphere.
 ## Lifecycle Hooks (Terraform 1.14 Actions)
 
 This workspace exposes **fifteen** AAP job templates as ad-hoc and
-lifecycle-bound operations. They are wired to two `terraform_data`
-resources that act as scheduling anchors:
+lifecycle-bound operations:
 
-| Resource | Sequenced | Hosts events |
-|----------|-----------|--------------|
-| `terraform_data.vm_lifecycle_pre` | **before** the VM module | `before_create`, `before_update` |
-| `terraform_data.vm_provisioned`   | **after** the VM module  | `after_create`, `after_update` |
+| Anchor resource | Hosts events |
+|-----------------|--------------|
+| `aap_host.vm_hosts` (per-VM) | `before_create`, `before_update` |
+| `terraform_data.vm_provisioned` | `after_create`, `after_update` |
+
+The pre-VM actions live on `aap_host` rather than on a separate
+`terraform_data` so the VM module needs no explicit `depends_on` —
+that would force its tag-lookup data sources to defer to apply time and
+trip a schema-validation failure in the upstream `virtual-machine/vsphere`
+module's `[for tag in module.tags : tag.tag_id]` comprehension.
 
 ### `before_create` — before the VM exists
 

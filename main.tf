@@ -1,14 +1,16 @@
 # HCP Terraform: vSphere VM Build with Ansible Automation Platform and HashiCorp Vault Agent
 #
 # Lifecycle wiring:
-#   terraform_data.vm_lifecycle_pre  → before_create / before_update
-#   terraform_data.vm_provisioned    → after_create  / after_update
+#   aap_host.vm_hosts            → before_create / before_update (per-VM)
+#   terraform_data.vm_provisioned → after_create  / after_update
 #
-# vm_lifecycle_pre runs BEFORE the VM module (the module has depends_on into
-# it) so CMDB / IPAM / snapshot / LB-drain jobs fire while there's still time
-# to react. aap_host is independent of the module (uses FQDN for
-# ansible_host) so AAP inventory is populated by the time before_create
-# fires.
+# aap_host is independent of the VM module (uses FQDN for ansible_host).
+# Putting before_* on aap_host means the action triggers don't need a
+# depends_on link into the VM module — which is important because that
+# explicit dep forces the upstream tags-submodule data sources to defer to
+# apply time, and the comprehension `[for tag in module.tags : tag.tag_id]`
+# in app.terraform.io/tfo-apj-demos/virtual-machine/vsphere v2.0.2 then
+# fails plan-time schema validation with "Null value found in list".
 
 locals {
   vm_names = {
@@ -76,20 +78,10 @@ resource "aap_host" "vm_hosts" {
   })
 
   groups = [aap_group.vm_groups[each.value.security_profile].id]
-}
 
-# ─────────────────────────────────────────────────────────────────────────
-# Pre-VM lifecycle hook
-# ─────────────────────────────────────────────────────────────────────────
-
-resource "terraform_data" "vm_lifecycle_pre" {
-  # Tracks any change to vm_config so before_update fires on size/site/profile
-  # changes too, not just on host add/remove.
-  input = var.vm_config
-
-  # Inventory must exist before action_trigger fires, so wait for hosts.
-  depends_on = [aap_host.vm_hosts]
-
+  # Pre-VM lifecycle hooks — fire per host before the VM module mutates
+  # the underlying VM. wait_for_completion on each action serialises the
+  # CMDB / IPAM / snapshot / LB-drain work against this host.
   lifecycle {
     action_trigger {
       events = [before_create]
@@ -112,6 +104,16 @@ resource "terraform_data" "vm_lifecycle_pre" {
 # ─────────────────────────────────────────────────────────────────────────
 # VM build (private module from PMR)
 # ─────────────────────────────────────────────────────────────────────────
+#
+# No explicit depends_on into aap_host here — depends_on at the module
+# scope forces all the module's data sources (vsphere_tag, vsphere_tag_category
+# x6, vsphere_datastore, vsphere_network, …) to defer to apply time, which
+# in turn makes the module's `tags = [for t in module.tags : t.tag_id]`
+# resolve to a null-bearing list at plan time and fail schema validation.
+# aap_host has no data dependency on the module, so Terraform's graph
+# walker schedules its creation first in practice — the pre-VM actions
+# run in the same scheduling layer as the VM build, and wait_for_completion
+# on the actions serialises within the host.
 
 module "single_virtual_machine" {
   for_each               = var.vm_config
@@ -130,10 +132,6 @@ module "single_virtual_machine" {
   size               = each.value.size
   storage_profile    = each.value.storage_profile
   tier               = each.value.tier
-
-  # Ensure pre-VM action triggers (CMDB / IPAM) complete before the VM is
-  # built — IPAM in particular must allocate the IP before vSphere asks for one.
-  depends_on = [terraform_data.vm_lifecycle_pre]
 }
 
 # ─────────────────────────────────────────────────────────────────────────
