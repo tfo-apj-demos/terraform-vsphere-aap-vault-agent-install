@@ -87,22 +87,22 @@ resource "aap_host" "vm_hosts" {
   # Pre-VM lifecycle hooks — fire per host before the VM module mutates
   # the underlying VM. wait_for_completion on each action serialises the
   # CMDB / snapshot / LB-drain work against this host.
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [
-        action.aap_job_launch.cmdb_change_open,
-      ]
-    }
-    action_trigger {
-      events = [before_update]
-      actions = [
-        action.aap_job_launch.cmdb_change_open,
-        action.aap_job_launch.vsphere_snapshot,
-        action.aap_job_launch.lb_pool_drain,
-      ]
-    }
-  }
+  # lifecycle {
+  #   action_trigger {
+  #     events = [before_create]
+  #     actions = [
+  #       action.aap_job_launch.cmdb_change_open,
+  #     ]
+  #   }
+  #   action_trigger {
+  #     events = [before_update]
+  #     actions = [
+  #       action.aap_job_launch.cmdb_change_open,
+  #       action.aap_job_launch.vsphere_snapshot,
+  #       action.aap_job_launch.lb_pool_drain,
+  #     ]
+  #   }
+  # }
 }
 
 # ─────────────────────────────────────────────────────────────────────────
