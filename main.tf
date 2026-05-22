@@ -75,7 +75,6 @@ resource "aap_host" "vm_hosts" {
     security_profile   = each.value.security_profile
     ad_domain          = each.value.ad_domain
     tfc_workspace_name = var.TFC_WORKSPACE_NAME
-    tfc_run_id         = var.TFC_RUN_ID
     # Use the FQDN for SSH so pre-VM jobs see this host before the VM
     # exists. Once the VM module runs, its DNS provider (see provider.tf)
     # registers the A record and SSH resolves to the right IP.
