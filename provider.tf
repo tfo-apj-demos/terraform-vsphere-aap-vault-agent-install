@@ -1,13 +1,12 @@
 terraform {
   required_version = ">= 1.14"
 
-  # cloud {                                                                                                      
-  #   organization = "tfo-apj-demos"                        
-  #   workspaces {                                                                                               
-  #     name = "terraform-vsphere-aap-vault-agent-install"
-  #     project = "Demo Better Together Project"                                               
-  #   }                                                                                                          
-  # } 
+  cloud {
+    organization = "tfo-apj-demos"
+    workspaces {
+      name = "better-together-vm-lifecycle-dev"
+    }
+  }
 
   required_providers {
     vsphere = {
