@@ -28,13 +28,12 @@ guardrails before any change reaches vSphere.
 
 ## Lifecycle Hooks (Terraform 1.14 Actions)
 
-This workspace exposes **fifteen** AAP job templates as ad-hoc and
-lifecycle-bound operations:
+The workspace exposes two categories of AAP job templates:
 
-| Anchor resource | Hosts events |
-|-----------------|--------------|
-| `aap_host.vm_hosts` (per-VM) | `before_create`, `before_update` |
-| `terraform_data.vm_provisioned` | `after_create`, `after_update` |
+| Category | Anchor / firing |
+|----------|-----------------|
+| Lifecycle-bound | `aap_host.vm_hosts` for `before_create` / `before_update`; `terraform_data.vm_provisioned` for `after_create` / `after_update` |
+| Ad-hoc vSphere ops | Declared as `action.aap_job_launch.*` but unbound — fire from the TFC UI on demand |
 
 The pre-VM actions live on `aap_host` rather than on a separate
 `terraform_data` so the VM module needs no explicit `depends_on` —
@@ -47,20 +46,15 @@ module's `[for tag in module.tags : tag.tag_id]` comprehension.
 | Action | AAP Job Template | What it does |
 |--------|------------------|--------------|
 | `action.aap_job_launch.cmdb_change_open` | `pre-cmdb-change-open` | Opens a ServiceNow change record with CAB-ready fields, linked to the TFC run ID |
-| `action.aap_job_launch.ipam_reserve` | `pre-ipam-reserve` | Reserves the next-available IP and DNS record in Infoblox |
 
-### `after_create` — after the VM is up
+### `after_create` + `after_update` — idempotent configuration
 
 | Action | AAP Job Template | What it does |
 |--------|------------------|--------------|
 | `action.aap_job_launch.rhel_register` | `rhel-register` | Registers with Red Hat Subscription Manager |
 | `action.aap_job_launch.cis_hardening` | `rhel-cis-hardening` | Applies a CIS L1 / DISA STIG-aligned baseline |
 | `action.aap_job_launch.chrony_timesync` | `rhel-chrony-timesync` | Configures chrony against bank stratum-1 NTP |
-| `action.aap_job_launch.ad_domain_join` | `rhel-ad-domain-join` | Joins Active Directory via realmd / SSSD |
 | `action.aap_job_launch.vault_agent` | `rhel-install-vault-agent` | Installs and configures the Vault Agent |
-| `action.aap_job_launch.splunk_uf_install` | `rhel-splunk-uf-install` | Installs the Splunk Universal Forwarder and points it at the bank SIEM |
-| `action.aap_job_launch.crowdstrike_install` | `rhel-crowdstrike-install` | Installs the CrowdStrike Falcon EDR sensor |
-| `action.aap_job_launch.qualys_install` | `rhel-qualys-install` | Installs and activates the Qualys Cloud Agent |
 | `action.aap_job_launch.install_nginx` | `rhel-install-nginx` | Installs and configures Nginx |
 
 ### `before_update` — before Terraform mutates the VM
@@ -68,23 +62,34 @@ module's `[for tag in module.tags : tag.tag_id]` comprehension.
 | Action | AAP Job Template | What it does |
 |--------|------------------|--------------|
 | `action.aap_job_launch.cmdb_change_open` | `pre-cmdb-change-open` | Re-opens / extends the ServiceNow change record |
-| `action.aap_job_launch.vsphere_snapshot` | `pre-vsphere-snapshot` | Takes a pre-change vSphere snapshot via REST (TTL-tagged) |
+| `action.aap_job_launch.vsphere_snapshot` | `pre-vsphere-snapshot` | Takes a pre-change vSphere snapshot via the Vault LDAP dynamic role |
 | `action.aap_job_launch.lb_pool_drain` | `pre-lb-pool-drain` | Drains the VM from its F5 BIG-IP pool with a grace window |
 
-### `after_update` — after the change applies
-
-Re-runs the after_create stack (all of those playbooks are idempotent),
-plus:
+### `after_update` — additional checks after change applies
 
 | Action | AAP Job Template | What it does |
 |--------|------------------|--------------|
 | `action.aap_job_launch.post_change_validate` | `rhel-post-change-validate` | TCP / systemd / HTTP / clock-skew checks; fails the action on regression |
 | `action.aap_job_launch.lb_pool_reenable` | `post-lb-pool-reenable` | Re-adds the VM to F5, waits for monitor:up, triggers a Qualys rescan |
 
+### Ad-hoc vSphere ops (no lifecycle binding)
+
+These are declared as actions so they're invocable from the TFC UI, but
+not wired into any `action_trigger`. Each one reads a fresh leased
+vCenter service account from Vault's LDAP secrets engine
+(`ldap/creds/vsphere_access`) for the duration of the job.
+
+| Action | AAP Job Template | What it does |
+|--------|------------------|--------------|
+| `action.aap_job_launch.vsphere_power_off` | `vsphere-power-off` | Graceful guest shutdown via VMware Tools |
+| `action.aap_job_launch.vsphere_power_on` | `vsphere-power-on` | Power on |
+| `action.aap_job_launch.vsphere_guest_reboot` | `vsphere-guest-reboot` | Reboot guest OS via VMware Tools |
+| `action.aap_job_launch.vsphere_revert_snapshot` | `vsphere-revert-snapshot` | Revert to a named snapshot (default: most recently created) |
+| `action.aap_job_launch.vsphere_remove_all_snapshots` | `vsphere-remove-all-snapshots` | Remove all snapshots — vSphere consolidates the disk chain |
+
 > **Note**: `before_destroy` / `after_destroy` actions aren't yet in
 > Terraform 1.14 — when they land, the natural extensions are
-> `cmdb-close-change`, `ipam-release`, `backup-archive`, and
-> `cmdb-retire-ci`.
+> `cmdb-close-change`, `backup-archive`, and `cmdb-retire-ci`.
 
 ## Playbook source
 
@@ -93,9 +98,11 @@ All playbooks and roles live in
 under `playbooks/` and `roles/`. AAP project ID `57` in the demo
 controller (`ansible-rhel-post-deploy`) keeps it synced on `main`.
 
-Every role that talks to vendor SaaS (ServiceNow, Infoblox, Qualys, F5)
-ships with `*_simulate: true` in its defaults so the full lifecycle
-runs end-to-end in lab without real backends. Flip to `false` in prod.
+The ansible repo also contains additional playbooks that aren't wired
+into this workspace (`rhel-splunk-uf-install`, `rhel-crowdstrike-install`,
+`rhel-qualys-install`, `rhel-ad-domain-join`, `pre-ipam-reserve`) — they
+remain as ad-hoc job templates in AAP for other workspaces or manual
+launch.
 
 ## What gets passed to AAP per host
 
@@ -110,7 +117,8 @@ The `aap_host` resource encodes the variables every role needs:
 }
 ```
 
-Secrets (RHSM credentials, Falcon CID, F5 service account, Infoblox
-WAPI, ServiceNow OAuth, etc.) are never in here — every role reads them
-at runtime from Vault via the `community.hashi_vault` collection using
-AppRole auth.
+Secrets are never in here — every role reads them at runtime from
+Vault. Static-account paths use `community.hashi_vault.vault_kv2_get`
+(KV v2). vCenter ops use `community.hashi_vault.vault_read` against the
+LDAP dynamic role at `ldap/creds/vsphere_access`, which leases a fresh
+AD account scoped through the `g_vsphere_access` group for each job.

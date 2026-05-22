@@ -11,6 +11,11 @@
 # apply time, and the comprehension `[for tag in module.tags : tag.tag_id]`
 # in app.terraform.io/tfo-apj-demos/virtual-machine/vsphere v2.0.2 then
 # fails plan-time schema validation with "Null value found in list".
+#
+# vSphere ops (power_off, power_on, guest_reboot, revert_snapshot,
+# remove_all_snapshots) are declared as actions but not bound to any
+# lifecycle trigger — they're available as ad-hoc operations from the
+# TFC UI for the workspace developer to invoke on demand.
 
 locals {
   vm_names = {
@@ -81,13 +86,12 @@ resource "aap_host" "vm_hosts" {
 
   # Pre-VM lifecycle hooks — fire per host before the VM module mutates
   # the underlying VM. wait_for_completion on each action serialises the
-  # CMDB / IPAM / snapshot / LB-drain work against this host.
+  # CMDB / snapshot / LB-drain work against this host.
   lifecycle {
     action_trigger {
       events = [before_create]
       actions = [
         action.aap_job_launch.cmdb_change_open,
-        action.aap_job_launch.ipam_reserve,
       ]
     }
     action_trigger {
@@ -138,7 +142,7 @@ module "single_virtual_machine" {
 # Job template data sources
 # ─────────────────────────────────────────────────────────────────────────
 
-# Existing (kept):
+# Core after_create stack:
 data "aap_job_template" "rhel_register" {
   name              = "rhel-register"
   organization_name = "Default"
@@ -154,28 +158,6 @@ data "aap_job_template" "install_nginx" {
   organization_name = "Default"
 }
 
-# Pre-VM (before_create / before_update):
-data "aap_job_template" "cmdb_change_open" {
-  name              = "pre-cmdb-change-open"
-  organization_name = "Default"
-}
-
-data "aap_job_template" "ipam_reserve" {
-  name              = "pre-ipam-reserve"
-  organization_name = "Default"
-}
-
-data "aap_job_template" "vsphere_snapshot" {
-  name              = "pre-vsphere-snapshot"
-  organization_name = "Default"
-}
-
-data "aap_job_template" "lb_pool_drain" {
-  name              = "pre-lb-pool-drain"
-  organization_name = "Default"
-}
-
-# Post-VM (after_create / after_update):
 data "aap_job_template" "cis_hardening" {
   name              = "rhel-cis-hardening"
   organization_name = "Default"
@@ -186,23 +168,19 @@ data "aap_job_template" "chrony_timesync" {
   organization_name = "Default"
 }
 
-data "aap_job_template" "ad_domain_join" {
-  name              = "rhel-ad-domain-join"
+# Pre-VM (before_create / before_update):
+data "aap_job_template" "cmdb_change_open" {
+  name              = "pre-cmdb-change-open"
   organization_name = "Default"
 }
 
-data "aap_job_template" "splunk_uf_install" {
-  name              = "rhel-splunk-uf-install"
+data "aap_job_template" "vsphere_snapshot" {
+  name              = "pre-vsphere-snapshot"
   organization_name = "Default"
 }
 
-data "aap_job_template" "crowdstrike_install" {
-  name              = "rhel-crowdstrike-install"
-  organization_name = "Default"
-}
-
-data "aap_job_template" "qualys_install" {
-  name              = "rhel-qualys-install"
+data "aap_job_template" "lb_pool_drain" {
+  name              = "pre-lb-pool-drain"
   organization_name = "Default"
 }
 
@@ -217,6 +195,33 @@ data "aap_job_template" "lb_pool_reenable" {
   organization_name = "Default"
 }
 
+# Ad-hoc vSphere ops (no lifecycle trigger — surfaced in the TFC UI for
+# the workspace developer to invoke on demand).
+data "aap_job_template" "vsphere_power_off" {
+  name              = "vsphere-power-off"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "vsphere_power_on" {
+  name              = "vsphere-power-on"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "vsphere_guest_reboot" {
+  name              = "vsphere-guest-reboot"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "vsphere_revert_snapshot" {
+  name              = "vsphere-revert-snapshot"
+  organization_name = "Default"
+}
+
+data "aap_job_template" "vsphere_remove_all_snapshots" {
+  name              = "vsphere-remove-all-snapshots"
+  organization_name = "Default"
+}
+
 # ─────────────────────────────────────────────────────────────────────────
 # Action blocks
 #
@@ -225,7 +230,7 @@ data "aap_job_template" "lb_pool_reenable" {
 # is what a bank change-control workflow expects.
 # ─────────────────────────────────────────────────────────────────────────
 
-# Existing:
+# Core after_create stack:
 action "aap_job_launch" "rhel_register" {
   config {
     job_template_id                     = data.aap_job_template.rhel_register.id
@@ -253,19 +258,28 @@ action "aap_job_launch" "install_nginx" {
   }
 }
 
-# Pre-VM:
-action "aap_job_launch" "cmdb_change_open" {
+action "aap_job_launch" "cis_hardening" {
   config {
-    job_template_id                     = data.aap_job_template.cmdb_change_open.id
+    job_template_id                     = data.aap_job_template.cis_hardening.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 1200
+  }
+}
+
+action "aap_job_launch" "chrony_timesync" {
+  config {
+    job_template_id                     = data.aap_job_template.chrony_timesync.id
     inventory_id                        = aap_inventory.vm_inventory.id
     wait_for_completion                 = true
     wait_for_completion_timeout_seconds = 600
   }
 }
 
-action "aap_job_launch" "ipam_reserve" {
+# Pre-VM:
+action "aap_job_launch" "cmdb_change_open" {
   config {
-    job_template_id                     = data.aap_job_template.ipam_reserve.id
+    job_template_id                     = data.aap_job_template.cmdb_change_open.id
     inventory_id                        = aap_inventory.vm_inventory.id
     wait_for_completion                 = true
     wait_for_completion_timeout_seconds = 600
@@ -290,61 +304,6 @@ action "aap_job_launch" "lb_pool_drain" {
   }
 }
 
-# Post-VM (after_create / after_update):
-action "aap_job_launch" "cis_hardening" {
-  config {
-    job_template_id                     = data.aap_job_template.cis_hardening.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 1200
-  }
-}
-
-action "aap_job_launch" "chrony_timesync" {
-  config {
-    job_template_id                     = data.aap_job_template.chrony_timesync.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 600
-  }
-}
-
-action "aap_job_launch" "ad_domain_join" {
-  config {
-    job_template_id                     = data.aap_job_template.ad_domain_join.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 900
-  }
-}
-
-action "aap_job_launch" "splunk_uf_install" {
-  config {
-    job_template_id                     = data.aap_job_template.splunk_uf_install.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 1200
-  }
-}
-
-action "aap_job_launch" "crowdstrike_install" {
-  config {
-    job_template_id                     = data.aap_job_template.crowdstrike_install.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 1200
-  }
-}
-
-action "aap_job_launch" "qualys_install" {
-  config {
-    job_template_id                     = data.aap_job_template.qualys_install.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 900
-  }
-}
-
 # Post-update only:
 action "aap_job_launch" "post_change_validate" {
   config {
@@ -358,6 +317,54 @@ action "aap_job_launch" "post_change_validate" {
 action "aap_job_launch" "lb_pool_reenable" {
   config {
     job_template_id                     = data.aap_job_template.lb_pool_reenable.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 900
+  }
+}
+
+# Ad-hoc vSphere operations — declared so they appear as invocable
+# actions in the TFC UI, but intentionally not wired to any
+# action_trigger. Workspace developer fires them on demand.
+action "aap_job_launch" "vsphere_power_off" {
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_power_off.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 600
+  }
+}
+
+action "aap_job_launch" "vsphere_power_on" {
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_power_on.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 600
+  }
+}
+
+action "aap_job_launch" "vsphere_guest_reboot" {
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_guest_reboot.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 600
+  }
+}
+
+action "aap_job_launch" "vsphere_revert_snapshot" {
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_revert_snapshot.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 900
+  }
+}
+
+action "aap_job_launch" "vsphere_remove_all_snapshots" {
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_remove_all_snapshots.id
     inventory_id                        = aap_inventory.vm_inventory.id
     wait_for_completion                 = true
     wait_for_completion_timeout_seconds = 900
@@ -379,11 +386,7 @@ resource "terraform_data" "vm_provisioned" {
         action.aap_job_launch.rhel_register,
         action.aap_job_launch.cis_hardening,
         action.aap_job_launch.chrony_timesync,
-        action.aap_job_launch.ad_domain_join,
         action.aap_job_launch.vault_agent,
-        action.aap_job_launch.splunk_uf_install,
-        action.aap_job_launch.crowdstrike_install,
-        action.aap_job_launch.qualys_install,
         action.aap_job_launch.install_nginx,
       ]
     }
