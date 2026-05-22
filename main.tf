@@ -85,18 +85,11 @@ resource "aap_host" "vm_hosts" {
 
   # Pre-VM lifecycle hooks — fire per host before the VM module mutates
   # the underlying VM. wait_for_completion on each action serialises the
-  # CMDB / snapshot / LB-drain work against this host.
+  # snapshot + LB-drain work against this host.
   # lifecycle {
-  #   action_trigger {
-  #     events = [before_create]
-  #     actions = [
-  #       action.aap_job_launch.cmdb_change_open,
-  #     ]
-  #   }
   #   action_trigger {
   #     events = [before_update]
   #     actions = [
-  #       action.aap_job_launch.cmdb_change_open,
   #       action.aap_job_launch.vsphere_snapshot,
   #       action.aap_job_launch.lb_pool_drain,
   #     ]
@@ -167,12 +160,7 @@ data "aap_job_template" "chrony_timesync" {
   organization_name = "Default"
 }
 
-# Pre-VM (before_create / before_update):
-data "aap_job_template" "cmdb_change_open" {
-  name              = "pre-cmdb-change-open"
-  organization_name = "Default"
-}
-
+# Pre-VM (before_update — both currently commented out on aap_host):
 data "aap_job_template" "vsphere_snapshot" {
   name              = "pre-vsphere-snapshot"
   organization_name = "Default"
@@ -180,17 +168,6 @@ data "aap_job_template" "vsphere_snapshot" {
 
 data "aap_job_template" "lb_pool_drain" {
   name              = "pre-lb-pool-drain"
-  organization_name = "Default"
-}
-
-# Post-update validation & re-enable:
-data "aap_job_template" "post_change_validate" {
-  name              = "rhel-post-change-validate"
-  organization_name = "Default"
-}
-
-data "aap_job_template" "lb_pool_reenable" {
-  name              = "post-lb-pool-reenable"
   organization_name = "Default"
 }
 
@@ -275,16 +252,8 @@ action "aap_job_launch" "chrony_timesync" {
   }
 }
 
-# Pre-VM:
-action "aap_job_launch" "cmdb_change_open" {
-  config {
-    job_template_id                     = data.aap_job_template.cmdb_change_open.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 600
-  }
-}
-
+# Pre-VM (declared but currently NOT bound to any action_trigger — the
+# aap_host lifecycle block that fires these is commented out above):
 action "aap_job_launch" "vsphere_snapshot" {
   config {
     job_template_id                     = data.aap_job_template.vsphere_snapshot.id
@@ -300,25 +269,6 @@ action "aap_job_launch" "lb_pool_drain" {
     inventory_id                        = aap_inventory.vm_inventory.id
     wait_for_completion                 = true
     wait_for_completion_timeout_seconds = 600
-  }
-}
-
-# Post-update only:
-action "aap_job_launch" "post_change_validate" {
-  config {
-    job_template_id                     = data.aap_job_template.post_change_validate.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 600
-  }
-}
-
-action "aap_job_launch" "lb_pool_reenable" {
-  config {
-    job_template_id                     = data.aap_job_template.lb_pool_reenable.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 900
   }
 }
 
@@ -411,13 +361,5 @@ resource "terraform_data" "vm_provisioned" {
       ]
     }
 
-    # Update-only — these only make sense after the VM was already in service.
-    action_trigger {
-      events = [after_update]
-      actions = [
-        action.aap_job_launch.post_change_validate,
-        action.aap_job_launch.lb_pool_reenable,
-      ]
-    }
   }
 }
