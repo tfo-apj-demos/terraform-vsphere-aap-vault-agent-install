@@ -276,25 +276,69 @@ action "aap_job_launch" "lb_pool_drain" {
 # actions in the TFC UI, but intentionally not wired to any
 # action_trigger. Workspace developer fires them on demand.
 #
-# The five action blocks are wrapped in modules/vm-actions and the
-# *module* is for_each'd over var.vm_config. Per-VM module addressing
-# (module.vm_actions["vm1"].action.aap_job_launch.vsphere_power_off,
-# module.vm_actions["vm2"].action.aap_job_launch.vsphere_power_off, …)
-# produces a distinct address per VM/op pair, which is what the HCP
-# Terraform actions UI uses for per-instance invoke. Putting `for_each`
-# directly on the action block collapsed all instances under one
-# parent label in the UI — clicking invoke there fired both VMs.
-module "vm_actions" {
+# for_each = var.vm_config gives the workspace operator one action
+# instance per VM (e.g. action.aap_job_launch.vsphere_power_off["vm1"]),
+# so the TFC UI's invoke picker can scope an operation to a single VM
+# rather than the whole inventory.
+#
+# extra_vars passes `target_host: <vm hostname>` into the AAP job. The
+# matching playbooks (ansible-rhel-post-deploy/playbooks/vsphere-*.yml)
+# use `hosts: "{{ target_host | default('all') }}"` so the play scopes
+# to that single host. Default-to-all preserves the legacy behaviour
+# for any caller that doesn't set the extra_var.
+action "aap_job_launch" "vsphere_power_off" {
   for_each = var.vm_config
-  source   = "./modules/vm-actions"
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_power_off.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 600
+    extra_vars                          = jsonencode({ target_host = each.value.hostname })
+  }
+}
 
-  target_hostname            = each.value.hostname
-  inventory_id               = aap_inventory.vm_inventory.id
-  power_off_jt_id            = data.aap_job_template.vsphere_power_off.id
-  power_on_jt_id             = data.aap_job_template.vsphere_power_on.id
-  guest_reboot_jt_id         = data.aap_job_template.vsphere_guest_reboot.id
-  revert_snapshot_jt_id      = data.aap_job_template.vsphere_revert_snapshot.id
-  remove_all_snapshots_jt_id = data.aap_job_template.vsphere_remove_all_snapshots.id
+action "aap_job_launch" "vsphere_power_on" {
+  for_each = var.vm_config
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_power_on.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 600
+    extra_vars                          = jsonencode({ target_host = each.value.hostname })
+  }
+}
+
+action "aap_job_launch" "vsphere_guest_reboot" {
+  for_each = var.vm_config
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_guest_reboot.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 600
+    extra_vars                          = jsonencode({ target_host = each.value.hostname })
+  }
+}
+
+action "aap_job_launch" "vsphere_revert_snapshot" {
+  for_each = var.vm_config
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_revert_snapshot.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 900
+    extra_vars                          = jsonencode({ target_host = each.value.hostname })
+  }
+}
+
+action "aap_job_launch" "vsphere_remove_all_snapshots" {
+  for_each = var.vm_config
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_remove_all_snapshots.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 900
+    extra_vars                          = jsonencode({ target_host = each.value.hostname })
+  }
 }
 
 # ─────────────────────────────────────────────────────────────────────────
