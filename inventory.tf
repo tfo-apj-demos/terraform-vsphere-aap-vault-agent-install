@@ -1,5 +1,6 @@
-# AAP inventory & host registration (created BEFORE the VM module so
-# pre-VM action triggers run against a populated inventory).
+# AAP inventory & host registration. Created before the VM module so the
+# inventory is populated by the time the after_create jobs (lifecycle.tf)
+# launch against it.
 
 resource "aap_inventory" "vm_inventory" {
   name        = "Better Together Demo - ${var.TFC_PROJECT_NAME} - ${var.TFC_WORKSPACE_NAME}"
@@ -43,24 +44,11 @@ resource "aap_host" "vm_hosts" {
     security_profile   = each.value.security_profile
     ad_domain          = each.value.ad_domain
     tfc_workspace_name = var.TFC_WORKSPACE_NAME
-    # Use the FQDN for SSH so pre-VM jobs see this host before the VM
-    # exists. Once the VM module runs, its DNS provider (see provider.tf)
-    # registers the A record and SSH resolves to the right IP.
+    # Use the FQDN for SSH. Once the VM module runs, its DNS provider
+    # (see provider.tf) registers the A record so SSH resolves to the
+    # right IP for the after_create jobs.
     ansible_host = "${each.value.hostname}.${each.value.ad_domain}"
   })
 
   groups = [aap_group.vm_groups[each.value.security_profile].id]
-
-  # Pre-VM lifecycle hooks — fire per host before the VM module mutates
-  # the underlying VM. wait_for_completion on each action serialises the
-  # snapshot + LB-drain work against this host.
-  # lifecycle {
-  #   action_trigger {
-  #     events = [before_update]
-  #     actions = [
-  #       action.aap_job_launch.vsphere_snapshot,
-  #       action.aap_job_launch.lb_pool_drain,
-  #     ]
-  #   }
-  # }
 }

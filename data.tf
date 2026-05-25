@@ -1,14 +1,9 @@
 # Job template data sources — looked up by name from AAP. Used by the
 # action blocks in actions.tf.
 
-# Core after_create stack:
+# Provisioning stack:
 data "aap_job_template" "rhel_register" {
   name              = "rhel-register"
-  organization_name = "Default"
-}
-
-data "aap_job_template" "vault_agent" {
-  name              = "rhel-install-vault-agent"
   organization_name = "Default"
 }
 
@@ -17,24 +12,8 @@ data "aap_job_template" "install_nginx" {
   organization_name = "Default"
 }
 
-data "aap_job_template" "cis_hardening" {
-  name              = "rhel-cis-hardening"
-  organization_name = "Default"
-}
-
 data "aap_job_template" "chrony_timesync" {
   name              = "rhel-chrony-timesync"
-  organization_name = "Default"
-}
-
-# Pre-VM (before_update — both currently commented out on aap_host):
-data "aap_job_template" "vsphere_snapshot" {
-  name              = "pre-vsphere-snapshot"
-  organization_name = "Default"
-}
-
-data "aap_job_template" "lb_pool_drain" {
-  name              = "pre-lb-pool-drain"
   organization_name = "Default"
 }
 

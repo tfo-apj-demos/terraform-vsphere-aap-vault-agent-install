@@ -5,20 +5,13 @@
 # fails the Terraform apply — which is what a bank change-control
 # workflow expects.
 
-# Core after_create stack — wired into lifecycle.tf via
-# terraform_data.vm_provisioned.
+# Provisioning stack — wired into lifecycle.tf via
+# terraform_data.vm_provisioned:
+#   after_create: rhel_register, install_nginx
+#   after_update: chrony_timesync
 action "aap_job_launch" "rhel_register" {
   config {
     job_template_id                     = data.aap_job_template.rhel_register.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 1000
-  }
-}
-
-action "aap_job_launch" "vault_agent" {
-  config {
-    job_template_id                     = data.aap_job_template.vault_agent.id
     inventory_id                        = aap_inventory.vm_inventory.id
     wait_for_completion                 = true
     wait_for_completion_timeout_seconds = 1000
@@ -34,39 +27,9 @@ action "aap_job_launch" "install_nginx" {
   }
 }
 
-action "aap_job_launch" "cis_hardening" {
-  config {
-    job_template_id                     = data.aap_job_template.cis_hardening.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 1200
-  }
-}
-
 action "aap_job_launch" "chrony_timesync" {
   config {
     job_template_id                     = data.aap_job_template.chrony_timesync.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 600
-  }
-}
-
-# Pre-VM (declared but currently NOT bound to any action_trigger — the
-# aap_host lifecycle block that fires these is commented out in
-# inventory.tf):
-action "aap_job_launch" "vsphere_snapshot" {
-  config {
-    job_template_id                     = data.aap_job_template.vsphere_snapshot.id
-    inventory_id                        = aap_inventory.vm_inventory.id
-    wait_for_completion                 = true
-    wait_for_completion_timeout_seconds = 1200
-  }
-}
-
-action "aap_job_launch" "lb_pool_drain" {
-  config {
-    job_template_id                     = data.aap_job_template.lb_pool_drain.id
     inventory_id                        = aap_inventory.vm_inventory.id
     wait_for_completion                 = true
     wait_for_completion_timeout_seconds = 600
