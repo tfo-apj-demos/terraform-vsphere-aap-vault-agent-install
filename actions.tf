@@ -7,7 +7,7 @@
 
 # Provisioning stack — wired into lifecycle.tf via
 # terraform_data.vm_provisioned:
-#   after_create: rhel_register, install_nginx
+#   after_create: rhel_register, install_nginx, clm_issue_deploy_verify
 #   after_update: chrony_timesync
 action "aap_job_launch" "rhel_register" {
   config {
@@ -33,6 +33,22 @@ action "aap_job_launch" "chrony_timesync" {
     inventory_id                        = aap_inventory.vm_inventory.id
     wait_for_completion                 = true
     wait_for_completion_timeout_seconds = 600
+  }
+}
+
+# Certificate lifecycle workflow — issue from Vault PKI, back up the
+# existing cert, deploy, verify TLS, with automatic rollback on failure.
+# This is a workflow job template (multi-step), so it uses the
+# aap_workflow_job_launch action and workflow_job_template_id rather than
+# the single-job aap_job_launch. The template has ask_inventory_on_launch
+# set, so we pass the VM inventory explicitly. Generous timeout to cover
+# the full issue/deploy/verify graph. Wired into after_create.
+action "aap_workflow_job_launch" "clm_issue_deploy_verify" {
+  config {
+    workflow_job_template_id            = data.aap_workflow_job_template.clm_issue_deploy_verify.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 1800
   }
 }
 

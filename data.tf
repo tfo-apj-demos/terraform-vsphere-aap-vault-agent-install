@@ -17,6 +17,14 @@ data "aap_job_template" "chrony_timesync" {
   organization_name = "Default"
 }
 
+# Workflow job template (a multi-step graph, not a single job) — the CLM
+# cert lifecycle. Looked up via the workflow-specific data source and
+# launched with action.aap_workflow_job_launch in actions.tf.
+data "aap_workflow_job_template" "clm_issue_deploy_verify" {
+  name              = "CLM - Issue, Deploy & Verify"
+  organization_name = "Default"
+}
+
 # Ad-hoc vSphere ops (no lifecycle trigger — surfaced in the TFC UI for
 # the workspace developer to invoke on demand).
 data "aap_job_template" "vsphere_power_off" {

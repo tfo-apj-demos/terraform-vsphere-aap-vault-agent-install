@@ -14,9 +14,11 @@ terraform {
       version = "~> 2.15"
     }
     # Ansible Automation Platform Provider
+    # 1.5.0+ required for the aap_workflow_job_launch action (used by the
+    # CLM cert workflow in actions.tf); 1.4.0 only had aap_job_launch.
     aap = {
       source  = "ansible/aap"
-      version = "~> 1.4.0"
+      version = "~> 1.5.0"
     }
     # Required by single-virtual-machine module
     hcp = {
@@ -28,7 +30,7 @@ terraform {
       version = "~> 0.5"
     }
     dns = {
-      source  = "hashicorp/dns"
+      source = "hashicorp/dns"
       # Pinned below 3.6.0 — 3.6.0 broke GSS-TSIG against Windows AD DNS via
       # the bodgit/tsig 1.3.0 dep bump. See docs/DNS-GSS-TSIG-INVESTIGATION.md
       # and hashicorp/terraform-provider-dns#642.
