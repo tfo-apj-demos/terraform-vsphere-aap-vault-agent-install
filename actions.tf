@@ -84,6 +84,17 @@ action "aap_job_launch" "vsphere_guest_reboot" {
   }
 }
 
+action "aap_job_launch" "vsphere_create_snapshot" {
+  for_each = var.vm_config
+  config {
+    job_template_id                     = data.aap_job_template.vsphere_create_snapshot.id
+    inventory_id                        = aap_inventory.vm_inventory.id
+    wait_for_completion                 = true
+    wait_for_completion_timeout_seconds = 900
+    extra_vars                          = jsonencode({ target_host = each.value.hostname })
+  }
+}
+
 action "aap_job_launch" "vsphere_revert_snapshot" {
   for_each = var.vm_config
   config {

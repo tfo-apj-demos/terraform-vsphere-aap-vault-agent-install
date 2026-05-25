@@ -41,6 +41,11 @@ data "aap_job_template" "vsphere_guest_reboot" {
   organization_name = "Default"
 }
 
+data "aap_job_template" "vsphere_create_snapshot" {
+  name              = "vsphere-create-snapshot"
+  organization_name = "Default"
+}
+
 data "aap_job_template" "vsphere_revert_snapshot" {
   name              = "vsphere-revert-snapshot"
   organization_name = "Default"
