@@ -3,7 +3,7 @@
 # launch against it.
 
 resource "aap_inventory" "vm_inventory" {
-  name        = "Better Together Demo - ${var.TFC_PROJECT_NAME} - ${var.TFC_WORKSPACE_NAME}"
+  name        = "${var.TFC_PROJECT_NAME} - ${var.TFC_WORKSPACE_NAME}"
   description = "Inventory for VMs built with HCP Terraform and managed by AAP"
 
   variables = jsonencode({
