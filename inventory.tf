@@ -46,9 +46,8 @@ resource "aap_host" "vm_hosts" {
     security_profile   = each.value.security_profile
     ad_domain          = each.value.ad_domain
     tfc_workspace_name = var.TFC_WORKSPACE_NAME
-    # Use the FQDN for SSH. Once the VM module runs, its DNS provider
-    # (see provider.tf) registers the A record so SSH resolves to the
-    # right IP for the after_create jobs.
+    # FQDN: the VM module's DNS provider registers the A record, so SSH
+    # resolves before the after_create jobs run.
     ansible_host = "${each.value.hostname}.${each.value.ad_domain}"
   })
 

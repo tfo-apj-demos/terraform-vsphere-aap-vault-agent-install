@@ -1,14 +1,7 @@
-# Action blocks
-#
-# Each action.aap_job_launch wraps one AAP job template (looked up in
-# data.tf). wait_for_completion is true so any failure propagates up and
-# fails the Terraform apply — which is what a bank change-control
-# workflow expects.
+# AAP job-launch actions (templates looked up in data.tf).
+# wait_for_completion = true so a job failure fails the apply.
 
-# Provisioning stack — wired into lifecycle.tf via
-# terraform_data.vm_provisioned:
-#   after_create: rhel_register, install_nginx, clm_issue_deploy_verify
-#   after_update: chrony_timesync
+# Provisioning actions — wired into lifecycle.tf.
 action "aap_job_launch" "rhel_register" {
   config {
     job_template_id                     = data.aap_job_template.rhel_register.id
@@ -36,13 +29,10 @@ action "aap_job_launch" "chrony_timesync" {
   }
 }
 
-# Certificate lifecycle workflow — issue from Vault PKI, back up the
-# existing cert, deploy, verify TLS, with automatic rollback on failure.
-# This is a workflow job template (multi-step), so it uses the
-# aap_workflow_job_launch action and workflow_job_template_id rather than
-# the single-job aap_job_launch. The template has ask_inventory_on_launch
-# set, so we pass the VM inventory explicitly. Generous timeout to cover
-# the full issue/deploy/verify graph. Wired into after_create.
+# CLM cert lifecycle (issue -> backup -> deploy -> verify, auto-rollback).
+# A workflow job template, so it uses aap_workflow_job_launch +
+# workflow_job_template_id; ask_inventory_on_launch is set so we pass the
+# inventory explicitly.
 action "aap_workflow_job_launch" "clm_issue_deploy_verify" {
   config {
     workflow_job_template_id            = data.aap_workflow_job_template.clm_issue_deploy_verify.id
@@ -52,24 +42,15 @@ action "aap_workflow_job_launch" "clm_issue_deploy_verify" {
   }
 }
 
-# Ad-hoc vSphere operations — declared so they appear as invocable
-# actions in the TFC UI, but intentionally not wired to any
-# action_trigger. Workspace developer fires them on demand.
+# Ad-hoc vSphere ops — not wired to a trigger; invoked on demand.
+# for_each = var.vm_config gives each VM its own action address, keyed by
+# the vm_config map key. To target one VM: this is a VCS/cloud workspace,
+# so the CLI kicks off a remote plan that you then apply in the TFC UI:
 #
-# for_each = var.vm_config gives each VM/op pair its own action address
-# (e.g. action.aap_job_launch.vsphere_power_off["vm1"]). The CLI's
-# -invoke flag can target a single instance:
+#   terraform plan -invoke='action.aap_job_launch.vsphere_power_off["web-server-01"]'
 #
-#   terraform apply -invoke='action.aap_job_launch.vsphere_power_off["vm1"]'
-#
-# extra_vars passes `target_host: <vm hostname>` into the AAP job. The
-# matching playbooks (ansible-rhel-post-deploy/playbooks/vsphere-*.yml)
-# use `hosts: "{{ target_host | default('all') }}"` so the play scopes
-# to that single host. Default-to-all preserves the legacy behaviour
-# for any caller that doesn't set the extra_var. The HCP Terraform UI's
-# actions list currently collapses for_each instances under one parent
-# label — see the Slack draft at /tmp/slack-tfc-actions-feedback.txt
-# for the upstream feedback we're filing about this.
+# extra_vars sets target_host so the playbook (hosts: "{{ target_host |
+# default('all') }}") scopes to that single host.
 action "aap_job_launch" "vsphere_power_off" {
   for_each = var.vm_config
   config {

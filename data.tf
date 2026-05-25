@@ -17,9 +17,8 @@ data "aap_job_template" "chrony_timesync" {
   organization_name = "Default"
 }
 
-# Workflow job template (a multi-step graph, not a single job) — the CLM
-# cert lifecycle. Looked up via the workflow-specific data source and
-# launched with action.aap_workflow_job_launch in actions.tf.
+# Workflow job template (multi-step) — needs the workflow-specific data
+# source; launched via aap_workflow_job_launch.
 data "aap_workflow_job_template" "clm_issue_deploy_verify" {
   name              = "CLM - Issue, Deploy & Verify"
   organization_name = "Default"

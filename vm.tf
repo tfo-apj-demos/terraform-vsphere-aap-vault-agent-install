@@ -1,14 +1,8 @@
-# VM build (private module from PMR)
-#
-# No explicit depends_on into aap_host here — depends_on at the module
-# scope forces all the module's data sources (vsphere_tag, vsphere_tag_category
-# x6, vsphere_datastore, vsphere_network, …) to defer to apply time, which
-# in turn makes the module's `tags = [for t in module.tags : t.tag_id]`
-# resolve to a null-bearing list at plan time and fail schema validation.
-# aap_host has no data dependency on the module, so Terraform's graph
-# walker schedules its creation first in practice — the pre-VM actions
-# run in the same scheduling layer as the VM build, and wait_for_completion
-# on the actions serialises within the host.
+# Do NOT add a module-scoped depends_on into aap_host: it defers this
+# module's vSphere data sources to apply time, which makes its internal
+# `tags = [for t in module.tags : t.tag_id]` a null-bearing list that
+# fails plan-time validation. aap_host has no data dep on the module, so
+# the graph still schedules it first in practice.
 
 module "single_virtual_machine" {
   for_each               = var.vm_config

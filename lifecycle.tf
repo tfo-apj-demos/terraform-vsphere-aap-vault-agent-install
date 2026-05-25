@@ -1,19 +1,11 @@
-# Post-VM lifecycle hook
-#
-# Wires the AAP job-launch actions (declared in actions.tf, looked up
-# from JTs in data.tf) to the VM module's lifecycle events.
-#
-#   after_create — first-time provisioning only: register the host with
-#                  RHSM, install nginx, then run the CLM cert workflow
-#                  (issue from Vault PKI, deploy, verify TLS).
-#   after_update — drift reconciliation on subsequent applies: re-run the
-#                  chrony time-sync only.
+# Fires AAP actions on the VM module's lifecycle events:
+#   after_create — first provisioning: register, install nginx, CLM cert workflow
+#   after_update — drift reconciliation: chrony only
 
 resource "terraform_data" "vm_provisioned" {
   input = local.vm_names
 
   lifecycle {
-    # First-time provisioning.
     action_trigger {
       events = [after_create]
       actions = [
@@ -23,7 +15,6 @@ resource "terraform_data" "vm_provisioned" {
       ]
     }
 
-    # Config reconciliation on update.
     action_trigger {
       events = [after_update]
       actions = [

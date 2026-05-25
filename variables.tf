@@ -1,4 +1,3 @@
-# Define a map for VM configuration
 variable "vm_config" {
   description = "Configuration for multiple VMs"
   type = map(object({

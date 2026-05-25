@@ -5,10 +5,7 @@ output "vm_names" {
 
 output "vm_ip_addresses" {
   description = "Map of VM keys to their IP addresses"
-  value = {
-    for vm_key, vm_value in module.single_virtual_machine :
-    vm_key => vm_value.ip_address
-  }
+  value       = local.vm_ips
 }
 
 output "aap_inventory_id" {

@@ -13,9 +13,8 @@ terraform {
       source  = "vmware/vsphere"
       version = "~> 2.15"
     }
-    # Ansible Automation Platform Provider
-    # 1.5.0+ required for the aap_workflow_job_launch action (used by the
-    # CLM cert workflow in actions.tf); 1.4.0 only had aap_job_launch.
+    # 1.5.0+ required for the aap_workflow_job_launch action (CLM cert
+    # workflow in actions.tf); 1.4.0 only had aap_job_launch.
     aap = {
       source  = "ansible/aap"
       version = "~> 1.5.0"
@@ -43,18 +42,15 @@ terraform {
   }
 }
 
-# vSphere provider configuration
-# Uses environment variables: VSPHERE_USER, VSPHERE_PASSWORD, VSPHERE_SERVER
+# Credentials via env vars: VSPHERE_USER, VSPHERE_PASSWORD, VSPHERE_SERVER.
 provider "vsphere" {
   allow_unverified_ssl = true
 }
 
-# HCP provider configuration
 provider "hcp" {
   project_id = "11eb56d6-0f95-3a99-a33c-0242ac110007"
 }
 
-# Ansible Automation Platform provider
 provider "aap" {
   timeout = 30
 }
