@@ -9,6 +9,8 @@ resource "aap_inventory" "vm_inventory" {
   variables = jsonencode({
     os                 = values(var.vm_config)[0].os_type
     linux_distribution = values(var.vm_config)[0].linux_distribution
+    tfc_workspace_url  = "https://app.terraform.io/app/tfo-apj-demos/workspaces/${var.TFC_WORKSPACE_NAME}"
+
   })
 }
 
