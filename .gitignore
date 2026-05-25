@@ -41,3 +41,9 @@ tls-auth-example/
 *.key
 *.csr
 *.pem
+
+# .claude
+.claude/
+
+# docs
+docs/
