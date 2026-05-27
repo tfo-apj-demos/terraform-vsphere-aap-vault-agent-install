@@ -1,9 +1,3 @@
-# Do NOT add a module-scoped depends_on into aap_host: it defers this
-# module's vSphere data sources to apply time, which makes its internal
-# `tags = [for t in module.tags : t.tag_id]` a null-bearing list that
-# fails plan-time validation. aap_host has no data dep on the module, so
-# the graph still schedules it first in practice.
-
 module "single_virtual_machine" {
   for_each               = var.vm_config
   source                 = "app.terraform.io/tfo-apj-demos/single-virtual-machine/vsphere"
